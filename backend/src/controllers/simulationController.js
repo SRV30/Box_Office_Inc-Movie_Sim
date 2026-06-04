@@ -35,6 +35,10 @@ export const simulateWeek = async (req, res) => {
       currentWeek: gameState.currentWeek,
 
       money: studio.money,
+
+      ownedWriters: gameState.ownedWriters,
+
+      notifications: gameState.notifications,
     });
   } catch (error) {
     console.error("SIMULATION ERROR:", error);

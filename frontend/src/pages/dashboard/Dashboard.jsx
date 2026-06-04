@@ -32,9 +32,22 @@ const Dashboard = () => {
     try {
       setLoading(true);
 
-      await api.post("/simulation/next-week");
+      const res = await api.post("/simulation/next-week");
 
-      window.location.reload();
+      // Update local studio state to reflect new money/week without reload
+      if (user && user.studio) {
+        dispatch(
+          setUser({
+            ...user,
+            studio: {
+              ...user.studio,
+              money: res.data.money,
+            },
+          })
+        );
+      }
+
+      alert(`Week ${res.data.currentWeek} Simulated!`);
     } catch (error) {
       alert(error?.response?.data?.message || "Simulation failed");
     } finally {
