@@ -1,26 +1,12 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-
-import { 
-  DollarSign, 
-  Star, 
-  Users, 
-  Building, 
-  Calendar, 
-  Film, 
-  TrendingUp, 
-  Trophy,
-  Clock,
-  Zap,
-  CheckCircle2
-} from "lucide-react";
-
+import { DollarSign, Star, Users, Building, Calendar, Film, TrendingUp, Trophy, Clock, Zap, CheckCircle2 } from "lucide-react";
 import api from "../../api/axios";
 import { setUser } from "../../features/auth/authSlice";
-
 import DashboardLayout from "../../layouts/DashboardLayout";
 import StatCard from "../../components/common/StatCard";
 import SimulationSummaryModal from "../../components/simulation/SimulationSummaryModal";
+import { Skeleton } from "../../components/ui/Skeleton";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -31,244 +17,81 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const { user } = useSelector((state) => state.auth);
 
-  const currentYear = Math.floor((user?.currentWeek || 1) / 52) + 1;
-  const currentWeekInYear = ((user?.currentWeek - 1) % 52) + 1;
-
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const res = await api.get("/auth/me");
-        dispatch(setUser(res.data.user));
+        const [userRes, notifRes] = await Promise.all([
+          api.get("/auth/me"),
+          api.get("/notifications")
+        ]);
+        dispatch(setUser(userRes.data.user));
+        setNotifications(notifRes.data);
       } catch (error) {
-        console.error(error);
+        console.error("Dashboard fetch error:", error);
+      } finally {
+        setLoading(false);
       }
     };
-
-    const fetchNotifications = async () => {
-      try {
-        const res = await api.get("/notifications");
-        setNotifications(res.data.notifications || []);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    fetchUser();
-    fetchNotifications();
+    fetchData();
   }, [dispatch]);
 
-  const runSimulation = async (weeks) => {
-    if (loading) return;
-    try {
-      setLoading(true);
-      const res = await api.post("/simulation/next-week", { weeks });
-      setSimulationSummary(res.data.summary);
-      setShowSummary(true);
+  // --- SKELETON LOADING STATE ---
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6 p-6">
+          <Skeleton className="h-40 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32" />)}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
-      // Refresh user data to show new stats
-      const userRes = await api.get("/auth/me");
-      dispatch(setUser(userRes.data.user));
-      
-      // Refresh notifications
-      const notifRes = await api.get("/notifications");
-      setNotifications(notifRes.data.notifications || []);
-    } catch (error) {
-      alert(error?.response?.data?.message || "Simulation failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getEventIcon = (message) => {
-    const lowerMessage = message.toLowerCase();
-    if (lowerMessage.includes('movie') || lowerMessage.includes('film')) return <Film className="text-violet-400" size={20} />;
-    if (lowerMessage.includes('prestige') || lowerMessage.includes('award')) return <Trophy className="text-yellow-400" size={20} />;
-    if (lowerMessage.includes('money') || lowerMessage.includes('profit')) return <TrendingUp className="text-green-400" size={20} />;
-    if (lowerMessage.includes('fan')) return <Users className="text-blue-400" size={20} />;
-    if (lowerMessage.includes('week') || lowerMessage.includes('simulation')) return <Calendar className="text-purple-400" size={20} />;
-    return <CheckCircle2 className="text-slate-400" size={20} />;
-  };
-
-  const recentEvents = notifications.length > 0 
-    ? notifications.slice(0, 5) 
-    : [
-        { _id: '1', message: '🎬 Welcome to CineVerse Empire', createdAt: new Date().toISOString(), read: false },
-        { _id: '2', message: '🏢 Studio Founded', createdAt: new Date().toISOString(), read: false },
-        { _id: '3', message: '📅 Week 1 Started', createdAt: new Date().toISOString(), read: false }
-      ];
-
+  // --- MAIN DASHBOARD CONTENT ---
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Hero Banner */}
-        <div className="rounded-3xl bg-linear-to-r from-violet-700 to-purple-500 p-6 sm:p-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
-            Build Your Dream Studio
-          </h1>
+      <div className="p-6 space-y-8">
+        <header>
+          <h1 className="text-3xl font-bold text-white">Welcome, {user?.username}</h1>
+          <p className="text-gray-400">Manage your studio, track projects, and grow your empire.</p>
+        </header>
 
-          <p className="text-slate-100 mt-2 text-sm sm:text-base">
-            Create Blockbusters. Become a Legend.
-          </p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard title="Total Revenue" value={`$${user?.stats?.revenue || 0}`} icon={<DollarSign className="text-green-500" />} />
+          <StatCard title="Active Projects" value={user?.stats?.activeProjects || 0} icon={<Film className="text-blue-500" />} />
+          <StatCard title="Studio Rating" value={`${user?.stats?.rating || 0}/10`} icon={<Star className="text-yellow-500" />} />
+          <StatCard title="Talent Under Contract" value={user?.stats?.talentCount || 0} icon={<Users className="text-purple-500" />} />
         </div>
 
-        {/* Advanced Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-[#111827] p-4 sm:p-6 rounded-2xl border border-slate-800">
-          <div className="text-slate-400 font-bold uppercase text-xs tracking-widest">Advanced Controls</div>
-
-          <div className="flex gap-2 flex-wrap">
-            {[1, 3, 5].map(w => (
-              <button
-                key={w}
-                disabled={loading}
-                onClick={() => runSimulation(w)}
-                className="bg-slate-800 hover:bg-violet-600 text-white px-3 py-2 sm:px-4 rounded-xl font-bold transition disabled:opacity-50 text-sm sm:text-base cursor-pointer"
-              >
-                +{w} {w === 1 ? 'Week' : 'Weeks'}
-              </button>
-            ))}
+        {/* Dynamic Content Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 bg-gray-900 p-6 rounded-2xl border border-gray-800">
+            <h2 className="text-xl font-semibold mb-4 text-white">Recent Activity</h2>
+            {/* Notifications list goes here */}
+            {notifications.map(n => <div key={n.id} className="p-3 border-b border-gray-800">{n.message}</div>)}
           </div>
-
-          <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-800 pt-4 sm:pt-0 sm:pl-4 w-full sm:w-auto">
-            <input
-              type="number"
-              min="1"
-              max="52"
-              value={customWeeks}
-              onChange={(e) => setCustomWeeks(e.target.value)}
-              className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold outline-none focus:border-violet-500 text-sm sm:text-base"
-            />
-            <button
-              disabled={loading}
-              onClick={() => runSimulation(customWeeks)}
-              className="flex-1 sm:flex-none bg-violet-600 hover:bg-violet-700 text-white px-4 sm:px-5 py-2 rounded-xl font-bold transition disabled:opacity-50 text-sm sm:text-base cursor-pointer"
-            >
-              {loading ? "Simulating..." : "Run Custom"}
-            </button>
+          <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
+             <h2 className="text-xl font-semibold mb-4 text-white">Quick Actions</h2>
+             {/* Add your buttons here */}
           </div>
         </div>
 
-        {/* Timeline Display */}
-        <div className="bg-[#111827] border border-slate-800 rounded-2xl p-4 sm:p-6 flex justify-between items-center">
-            <div className="flex items-center gap-3 sm:gap-4">
-                <div className="bg-violet-600/20 text-violet-400 p-2.5 sm:p-3 rounded-xl shrink-0"><Calendar size={20} className="sm:w-6 sm:h-6" /></div>
-                <div>
-                    <div className="text-white font-black text-lg sm:text-xl md:text-2xl tracking-tighter">YEAR {currentYear} • WEEK {currentWeekInYear}</div>
-                    <div className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest">Global Industry Timeline</div>
-                </div>
-            </div>
-            <div className="hidden md:block w-64 bg-slate-800 h-2 rounded-full overflow-hidden shrink-0">
-                <div
-                    className="bg-violet-500 h-full transition-all duration-1000"
-                    style={{ width: `${(currentWeekInYear / 52) * 100}%` }}
-                />
-            </div>
-        </div>
-
-        {/* Studio Overview Redesigned */}
-        <div className="bg-[#111827] rounded-2xl p-4 sm:p-6 border border-slate-800">
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <Building className="text-violet-400" />
-            Studio Overview
-          </h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* Studio Name Card */}
-            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700 hover:border-violet-500 transition">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-violet-600/20 p-2 rounded-lg">
-                  <Building className="text-violet-400" size={20} />
-                </div>
-                <span className="text-slate-400 text-sm font-medium">Studio Name</span>
-              </div>
-              <h3 className="text-xl font-bold text-white truncate">{user?.studio?.name || 'My Studio'}</h3>
-            </div>
-
-            {/* Money Card */}
-            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700 hover:border-green-500 transition">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-green-600/20 p-2 rounded-lg">
-                  <DollarSign className="text-green-400" size={20} />
-                </div>
-                <span className="text-slate-400 text-sm font-medium">Money</span>
-              </div>
-              <h3 className="text-xl font-bold text-white truncate">₹{user?.studio?.money?.toLocaleString() || 0}</h3>
-            </div>
-
-            {/* Prestige Card */}
-            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700 hover:border-yellow-500 transition">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-yellow-600/20 p-2 rounded-lg">
-                  <Star className="text-yellow-400" size={20} />
-                </div>
-                <span className="text-slate-400 text-sm font-medium">Prestige</span>
-              </div>
-              <h3 className="text-xl font-bold text-white truncate">{user?.studio?.prestige?.toLocaleString() || 0}</h3>
-            </div>
-
-            {/* Fans Card */}
-            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700 hover:border-blue-500 transition">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-blue-600/20 p-2 rounded-lg">
-                  <Users className="text-blue-400" size={20} />
-                </div>
-                <span className="text-slate-400 text-sm font-medium">Fans</span>
-              </div>
-              <h3 className="text-xl font-bold text-white truncate">{user?.studio?.fans?.toLocaleString() || 0}</h3>
-            </div>
-
-            {/* Studio Level Card */}
-            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700 hover:border-purple-500 transition">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-purple-600/20 p-2 rounded-lg">
-                  <Zap className="text-purple-400" size={20} />
-                </div>
-                <span className="text-slate-400 text-sm font-medium">Level</span>
-              </div>
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <span className="bg-violet-600 px-2 py-0.5 rounded text-sm">{user?.studio?.studioLevel || 1}</span>
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Events Timeline */}
-        <div className="bg-[#111827] rounded-2xl p-4 sm:p-6 border border-slate-800">
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <Clock className="text-violet-400" />
-            Recent Events
-          </h2>
-          
-          <div className="space-y-4">
-            {recentEvents.map((event, index) => (
-              <div 
-                key={event._id} 
-                className="flex gap-4 items-start hover:bg-slate-900/30 p-3 rounded-xl transition cursor-pointer"
-              >
-                <div className={`flex-shrink-0 mt-1 ${event.read ? 'bg-slate-800' : 'bg-violet-600/30'} p-2 rounded-full`}>
-                  {getEventIcon(event.message)}
-                </div>
-                
-                <div className="flex-1 border-l-2 border-slate-700 pl-4">
-                  <p className="text-white font-medium text-sm sm:text-base">
-                    {event.message}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                    <Clock size={12} />
-                    {new Date(event.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Summary Modal Trigger */}
+        {showSummary && (
+          <SimulationSummaryModal 
+            data={simulationSummary} 
+            onClose={() => setShowSummary(false)} 
+          />
+        )}
       </div>
-
-      {showSummary && (
-        <SimulationSummaryModal
-          summary={simulationSummary}
-          onClose={() => setShowSummary(false)}
-        />
-      )}
     </DashboardLayout>
   );
 };
