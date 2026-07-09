@@ -12,20 +12,22 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "compression": "^1.8.1",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6",
-    "crypto": "^1.0.1",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "helmet": "^8.2.0",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.6.3",
-    "morgan": "^1.10.1",
-    "zod": "^4.4.3"
-  },
+  "bcryptjs": "^3.0.3",
+  "cookie-parser": "^1.4.7",
+  "cors": "^2.8.6",
+  "crypto": "^1.0.1",
+  "dotenv": "^17.4.2",
+  "express": "^5.2.1",
+  "express-rate-limit": "^7.5.0",
+  "helmet": "^8.2.0",
+  "jsonwebtoken": "^9.0.3",
+  "mongoose": "^9.6.3",
+  "morgan": "^1.10.1",
+  "zod": "^4.4.3"
+}
+  
   "devDependencies": {
     "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.14"
