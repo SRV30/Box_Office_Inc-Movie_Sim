@@ -302,7 +302,10 @@ export const generateTitle = async (req, res) => {
 export const releaseMovie = async (req, res) => {
     try {
         const { id } = req.params;
-        const movie = await Movie.findById(id);
+        const studioDoc = await Studio.findOne({ owner: req.user._id }).select("_id").lean();
+        if (!studioDoc) return res.status(404).json({ success: false, message: "Studio not found" });
+
+        const movie = await Movie.findOne({ _id: id, studioId: studioDoc._id });
         if (!movie) return res.status(404).json({ success: false, message: "Movie not found" });
         if (movie.status !== "READY_FOR_RELEASE") {
             return res.status(400).json({ success: false, message: "Movie is not ready for release" });
@@ -467,7 +470,10 @@ export const getReleasedMovies = async (req, res) => {
 
 export const getMovieDetails = async (req, res) => {
     try {
-        const movie = await Movie.findById(req.params.id).lean();
+        const studio = await Studio.findOne({ owner: req.user._id }).select("_id").lean();
+        if (!studio) return res.status(404).json({ success: false, message: "Studio not found" });
+
+        const movie = await Movie.findOne({ _id: req.params.id, studioId: studio._id }).lean();
         if (!movie) return res.status(404).json({ success: false, message: "Movie not found" });
 
         const gameState = await GameState.findOne({ user: req.user._id }).lean();
@@ -483,7 +489,10 @@ export const getMovieDetails = async (req, res) => {
 
 export const getMovieTracking = async (req, res) => {
     try {
-        const movie = await Movie.findById(req.params.id).lean();
+        const studio = await Studio.findOne({ owner: req.user._id }).select("_id").lean();
+        if (!studio) return res.status(404).json({ success: false, message: "Studio not found" });
+
+        const movie = await Movie.findOne({ _id: req.params.id, studioId: studio._id }).lean();
         if (!movie) return res.status(404).json({ success: false, message: "Movie not found" });
 
         const allowedStatuses = ["READY_FOR_RELEASE", "POST_PRODUCTION", "PRODUCTION"];
@@ -512,7 +521,12 @@ export const addMarketingCampaign = async (req, res) => {
     const { id } = req.params;
     const { campaignId } = req.body;
 
-    const movie = await Movie.findById(id);
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const movie = await Movie.findOne({ _id: id, studioId: studio._id });
     if (!movie) {
       return res.status(404).json({ success: false, message: "Movie not found" });
     }
@@ -528,11 +542,6 @@ export const addMarketingCampaign = async (req, res) => {
 
     if (movie.marketingCampaigns.includes(campaignId)) {
       return res.status(400).json({ success: false, message: "This campaign is already active for this movie" });
-    }
-
-    const studio = await Studio.findOne({ owner: req.user._id });
-    if (!studio) {
-      return res.status(404).json({ success: false, message: "Studio not found" });
     }
 
     if (studio.money < campaign.cost) {
