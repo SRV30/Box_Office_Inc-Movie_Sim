@@ -117,8 +117,16 @@ const studioSchema = new mongoose.Schema(
       week: { type: Number },
       reputationImpact: { type: Number },
     }],
-  },
-  {
+  // Pre-Sales Campaigns (issue #347)
+  preSalesCampaigns: [{
+    movieId: { type: mongoose.Schema.Types.ObjectId, ref: 'Movie' },
+    budget: { type: Number, default: 0 },
+    preSalesRevenue: { type: Number, default: 0 },
+    startWeek: { type: Number },
+    active: { type: Boolean, default: true }
+  }],
+},
+{
     timestamps: true,
   }
 );
