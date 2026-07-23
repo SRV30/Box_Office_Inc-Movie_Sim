@@ -12,6 +12,7 @@ import { generateRivalStudios, processRivalStudios } from "./rivalStudioEngine.j
 import { processProductionEvents } from "./eventEngine.js";
 import { processRandomEvents } from "./eventEngine.js";
 import { processMerchandiseSales } from "./merchandiseEngine.js";
+import { processMerchandiseLines } from "./merchandiseLinesEngine.js";
 import { processAnnualAwards } from "./awardsEngine.js";
 import { generateNewsFromTrend, generateNewsFromEvent } from "./newsEngine.js";
 import { processStreamingPlatformGrowth, processStreamingRevenue } from "./streamingEngine.js";
@@ -226,6 +227,9 @@ export const processWeeklyTick = async (gameState, studio) => {
   // Recurring weekly streaming revenue for accepted deals (issue #41) — runs
   // after platform growth so royalties reflect this week's platform popularity.
   await processStreamingRevenue(gameState, studio);
+
+  // Process studio merchandise product lines (issue #349)
+  processMerchandiseLines(gameState, studio);
 
   // 12. PR & Scandal events — roll for studio scandals and apply
   //     reputation decay (issue #281).

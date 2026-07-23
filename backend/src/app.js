@@ -41,6 +41,7 @@ import prRoutes from "./routes/prRoutes.js";
 import contractRoutes from "./routes/contractRoutes.js";
 import testScreeningRoutes from "./routes/testScreeningRoutes.js";
 import recordsRoutes from "./routes/recordsRoutes.js";
+import merchandiseLinesRoutes from "./routes/merchandiseLinesRoutes.js";
 
 const app = express();
 
@@ -132,6 +133,7 @@ app.use("/api/studios", apiRateLimiter, prRoutes);
 app.use("/api/contracts", apiRateLimiter, contractRoutes);
 app.use("/api/movies", apiRateLimiter, testScreeningRoutes);
 app.use("/api/records", apiRateLimiter, recordsRoutes);
+app.use("/api/merchandise", apiRateLimiter, merchandiseLinesRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

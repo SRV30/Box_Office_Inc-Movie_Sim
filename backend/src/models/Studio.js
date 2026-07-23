@@ -117,6 +117,20 @@ const studioSchema = new mongoose.Schema(
       week: { type: Number },
       reputationImpact: { type: Number },
     }],
+
+    // Merchandise Product Lines (issue #349)
+    merchandiseLines: [{
+      tier: { type: String, enum: ["APPAREL", "COLLECTIBLES", "DIGITAL", "TOYS"], required: true },
+      active: { type: Boolean, default: true },
+      launchedWeek: { type: Number },
+      totalRevenue: { type: Number, default: 0 },
+      campaigns: [{
+        startWeek: { type: Number },
+        endWeek: { type: Number },
+        boostMultiplier: { type: Number, default: 0.5 },
+        active: { type: Boolean, default: true }
+      }]
+    }],
   },
   {
     timestamps: true,
