@@ -72,6 +72,12 @@ const movieSchema = new mongoose.Schema(
 
     // Franchise and Sequel details
     franchiseId: { type: mongoose.Schema.Types.ObjectId, ref: "Franchise", default: null },
+    installmentNumber: { type: Number, default: 1 },
+    movieType: {
+      type: String,
+      enum: ["Standalone", "Sequel", "Prequel", "Spin-off", "Reboot"],
+      default: "Standalone",
+    },
     sequelNumber: { type: Number, default: 1 },
 // Awards tracking
     awards: [{

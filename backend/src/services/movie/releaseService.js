@@ -41,25 +41,6 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
   movie.audienceScore = reviews.audienceScore;
   movie.audienceLabel = reviews.audienceLabel;
 
-  // 2. Generate Box Office
-  const activeTrends = gameState.marketTrends?.activeTrends || [];
-  const marketMultiplier = getGenreMultiplier(activeTrends, script?.genres);
-  const demographicMultiplier = getDemographicMultiplier(script?.genres, movie.marketingCampaigns);
-  const boxOffice = generateBoxOffice(movie, leadActor, director, marketMultiplier, demographicMultiplier);
-  Object.assign(movie, boxOffice);
-
-  // Apply clash penalty
-  const clash = computeClashPenalty(gameState, movie);
-  if (clash.boxOfficeMultiplier < 1.0) {
-    movie.openingWeekend = Math.round(movie.openingWeekend * clash.boxOfficeMultiplier);
-    movie.worldwideGross = Math.round(movie.worldwideGross * clash.boxOfficeMultiplier);
-    movie.domesticGross = Math.round(movie.domesticGross * clash.boxOfficeMultiplier);
-    movie.internationalGross = Math.round(movie.internationalGross * clash.boxOfficeMultiplier);
-    movie.boxOffice = movie.worldwideGross;
-    movie.clashPenaltyApplied = true;
-    addNotification(gameState, `⚠️ Box Office Clash! "${movie.title}" faced screen-share penalty due to competition from: ${clash.clashedWith.join(", ")}.`);
-  }
-
   // Franchise modifiers
   let franchiseDoc = null;
   let franchiseModifiers = {};
@@ -75,6 +56,32 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
     }
   }
 
+  // 2. Generate Box Office
+  const activeTrends = gameState.marketTrends?.activeTrends || [];
+  const marketMultiplier = getGenreMultiplier(activeTrends, script?.genres);
+  const demographicMultiplier = getDemographicMultiplier(script?.genres, movie.marketingCampaigns);
+  const boxOffice = generateBoxOffice(
+    movie,
+    leadActor,
+    director,
+    marketMultiplier,
+    demographicMultiplier,
+    franchiseDoc
+  );
+  Object.assign(movie, boxOffice);
+
+  // Apply clash penalty
+  const clash = computeClashPenalty(gameState, movie);
+  if (clash.boxOfficeMultiplier < 1.0) {
+    movie.openingWeekend = Math.round(movie.openingWeekend * clash.boxOfficeMultiplier);
+    movie.worldwideGross = Math.round(movie.worldwideGross * clash.boxOfficeMultiplier);
+    movie.domesticGross = Math.round(movie.domesticGross * clash.boxOfficeMultiplier);
+    movie.internationalGross = Math.round(movie.internationalGross * clash.boxOfficeMultiplier);
+    movie.boxOffice = movie.worldwideGross;
+    movie.clashPenaltyApplied = true;
+    addNotification(gameState, `⚠️ Box Office Clash! "${movie.title}" faced screen-share penalty due to competition from: ${clash.clashedWith.join(", ")}.`);
+  }
+
   // 3. Update Studio Growth
   const growth = processStudioGrowth(gameState, studio, movie, franchiseModifiers);
 
@@ -84,6 +91,9 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
     franchiseDoc.fanbaseMultiplier = progress.fanbaseMultiplier;
     franchiseDoc.prestigeBonus = progress.prestigeBonus;
     franchiseDoc.totalRevenue = progress.totalRevenue;
+    franchiseDoc.movieCount = progress.movieCount;
+    franchiseDoc.popularity = progress.popularity;
+    franchiseDoc.fanLoyalty = progress.fanLoyalty;
   }
 
   // 4. Update Careers

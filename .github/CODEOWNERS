@@ -1,0 +1,19 @@
+# This file is used to define code owners for the Box Office Inc Movie Sim repository.
+# These owners will automatically be requested for review when a pull request changes
+# files that they own.
+
+# Global owner for the entire project (fallback)
+* @SRV30
+
+# Frontend architecture and UI components
+/frontend/ @SRV30
+
+# Backend architecture and API logic
+/backend/ @SRV30
+
+# CI/CD workflows and GitHub Actions configurations
+/.github/workflows/ @SRV30
+
+# Documentation and project guidelines
+/docs/ @SRV30
+*.md @SRV30

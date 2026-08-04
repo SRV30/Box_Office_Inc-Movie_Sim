@@ -82,6 +82,7 @@ const authPost = (path, token) =>
   });
 
 test("e2e: register seeds a studio with 10,000,000 starting funds", async () => {
+
   const response = await registerStudio();
   const { token, studio } = response;
 
@@ -96,8 +97,34 @@ test("e2e: register seeds a studio with 10,000,000 starting funds", async () => 
   assert.strictEqual(typeof studio.money, "number");
 
   // Existing assertions
+
+  const { token, studio } = await registerStudio();
+
+
   assert.ok(token, "registration returns an access token");
   assert.strictEqual(studio.money, 10000000);
+});
+
+test("e2e: newly registered studio starts with an empty owned actor roster", async () => {
+  const { token } = await registerStudio();
+
+  const ownedRes = await authGet("/api/actors/owned", token);
+  assert.strictEqual(ownedRes.status, 200);
+
+  const owned = await ownedRes.json();
+
+  assert.strictEqual(owned.success, true);
+
+  assert.ok(
+    Array.isArray(owned.ownedActors),
+    "ownedActors should be returned as an array",
+  );
+
+  assert.strictEqual(
+    owned.ownedActors.length,
+    0,
+    "a newly registered studio should not own any actors",
+  );
 });
 
 test("e2e: register -> browse actor market -> hire moves an actor to the owned roster", async () => {
@@ -107,6 +134,7 @@ test("e2e: register -> browse actor market -> hire moves an actor to the owned r
   assert.strictEqual(marketRes.status, 200);
 
   const market = await marketRes.json();
+
 
   // Validate response structure
   assert.strictEqual(typeof market, "object");
@@ -127,10 +155,19 @@ test("e2e: register -> browse actor market -> hire moves an actor to the owned r
     assert.strictEqual(typeof market.actors[0], "object");
   }
 
+  assert.strictEqual(market.success, true);
+  assert.ok(
+    Array.isArray(market.actors) && market.actors.length > 0,
+    "market returns actors",
+  );
+
+
   const hireRes = await authPost("/api/actors/hire/0", token);
+
   assert.strictEqual(hireRes.status, 200);
 
   const hire = await hireRes.json();
+
 
   // Validate response structure
   assert.strictEqual(typeof hire, "object");
@@ -144,6 +181,7 @@ test("e2e: register -> browse actor market -> hire moves an actor to the owned r
   assert.ok(Array.isArray(hire.ownedActors));
 
   // Existing assertions
+
   assert.strictEqual(hire.success, true);
   assert.ok(hire.actor, "the hired actor is returned");
 
@@ -157,7 +195,73 @@ test("e2e: register -> browse actor market -> hire moves an actor to the owned r
   }
 });
 
+/**
+ * NEW TEST FOR ISSUE #360
+ */
+test("e2e: rehiring an already owned actor is rejected", async () => {
+  const { token } = await registerStudio();
+
+  // Initial hire should succeed.
+  const firstHireRes = await authPost("/api/actors/hire/0", token);
+  assert.strictEqual(firstHireRes.status, 200);
+
+  const firstHire = await firstHireRes.json();
+  assert.strictEqual(firstHire.success, true);
+
+  const ownedBefore = firstHire.ownedActors.length;
+
+  // Attempt to hire the same actor again.
+  const secondHireRes = await authPost("/api/actors/hire/0", token);
+
+  // Duplicate hire should fail.
+  assert.notStrictEqual(
+    secondHireRes.status,
+    200,
+    "rehiring should not succeed",
+  );
+
+  const secondHire = await secondHireRes.json();
+
+  assert.strictEqual(secondHire.success, false);
+
+  // Verify an error message is returned.
+  assert.ok(
+    secondHire.message || secondHire.error,
+    "duplicate hire returns an error message",
+  );
+
+  // Verify the owned actor list remains unchanged if returned.
+  if (Array.isArray(secondHire.ownedActors)) {
+    assert.strictEqual(
+      secondHire.ownedActors.length,
+      ownedBefore,
+      "owned actor list should remain unchanged",
+    );
+  }
+
+  // Otherwise, fetch the owned roster and verify it still contains one actor.
+  else {
+    const ownedRes = await authGet("/api/actors/owned", token);
+
+    if (ownedRes.status === 200) {
+      const owned = await ownedRes.json();
+
+      const ownedActors =
+        owned.ownedActors ??
+        owned.actors ??
+        [];
+
+      assert.strictEqual(
+        ownedActors.length,
+        ownedBefore,
+        "owned actor list should remain unchanged",
+      );
+    }
+  }
+});
+
 test("e2e: gameplay endpoints reject unauthenticated access with 401", async () => {
   const res = await fetch(`${baseUrl}/api/actors/`);
+
   assert.strictEqual(res.status, 401);
 });

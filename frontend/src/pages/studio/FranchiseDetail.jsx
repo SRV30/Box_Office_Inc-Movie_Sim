@@ -89,6 +89,20 @@ const FranchiseDetail = () => {
   const fanbaseMultiplier = franchise.fanbaseMultiplier || 1;
   const fanBonusPct = Math.round((fanbaseMultiplier - 1) * 100);
   const prestigeBonus = franchise.prestigeBonus || 0;
+  const popularity = franchise.popularity ?? 50;
+  const fanLoyaltyRating = franchise.fanLoyalty ?? 50;
+  const totalRevenueValue = franchise.totalRevenue || totalGross;
+  const badges = franchise.badges || [];
+
+  const movieBadges = [
+    ...(badges || []),
+    ...(franchise.movieCount >= 10 ? ["10 Movies Club"] : []),
+    ...(totalRevenueValue >= 1_000_000_000 ? ["1 Billion Club"] : []),
+  ].filter((value, index, arr) => arr.indexOf(value) === index);
+
+  const timeline = [...movies]
+    .filter((m) => m.releaseWeek !== null && m.releaseWeek !== undefined)
+    .sort((a, b) => a.releaseWeek - b.releaseWeek || (a.sequelNumber || 0) - (b.sequelNumber || 0));
 
   const fmtMoney = (n) => `${(n / 1000000).toFixed(1)}M`;
 
@@ -122,7 +136,7 @@ const FranchiseDetail = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <StatCard
             icon={<Film size={14} className="text-blue-400" />}
             label="Installments"
@@ -132,26 +146,128 @@ const FranchiseDetail = () => {
           <StatCard
             icon={<IndianRupee size={14} className="text-green-400" />}
             label="Total Box Office"
-            value={fmtMoney(totalGross)}
+            value={fmtMoney(totalRevenueValue)}
           />
           <StatCard
             icon={<Star size={14} className="text-yellow-400" />}
-            label="Avg. Critic"
-            value={`${avgCritic.toFixed(1)}`}
-            sub={`Audience ${avgAudience.toFixed(1)}`}
+            label="Popularity"
+            value={`${popularity}%`}
+            sub="Franchise awareness"
           />
           <StatCard
             icon={<Users size={14} className="text-pink-400" />}
             label="Fan Loyalty"
-            value={`${fanbaseMultiplier.toFixed(2)}×`}
-            sub={fanBonusPct > 0 ? `+${fanBonusPct}% fan gain` : "No bonus yet"}
+            value={`${fanLoyaltyRating}%`}
+            sub="Audience devotion"
           />
           <StatCard
             icon={<Award size={14} className="text-violet-400" />}
             label="Franchise Prestige"
             value={`+${prestigeBonus}`}
-            sub="Prestige progression"
+            sub="Brand reputation"
           />
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6">
+          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-white">Popularity</h2>
+                <p className="text-slate-400 text-sm">How well the franchise is known.</p>
+              </div>
+              <div className="text-white font-bold">{popularity}%</div>
+            </div>
+            <div className="h-4 rounded-full bg-slate-900 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500"
+                style={{ width: `${popularity}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-white">Fan Loyalty</h2>
+                <p className="text-slate-400 text-sm">How attached fans are to the franchise.</p>
+              </div>
+              <div className="text-white font-bold">{fanLoyaltyRating}%</div>
+            </div>
+            <div className="h-4 rounded-full bg-slate-900 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-sky-500"
+                style={{ width: `${fanLoyaltyRating}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Badges</div>
+            {movieBadges.length === 0 ? (
+              <span className="text-slate-400 text-sm">No badges earned yet.</span>
+            ) : (
+              movieBadges.map((badge) => (
+                <span
+                  key={badge}
+                  className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1 text-xs font-semibold text-slate-200"
+                >
+                  {badge}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-white">Franchise Timeline</h2>
+                <p className="text-slate-400 text-sm">Chronological release order for this franchise.</p>
+              </div>
+              <div className="text-slate-400 text-sm">{timeline.length} released</div>
+            </div>
+            <div className="space-y-4">
+              {timeline.length === 0 ? (
+                <div className="text-slate-500">No released installments yet.</div>
+              ) : (
+                timeline.map((item, index) => (
+                  <div key={item._id} className="grid grid-cols-[auto_1fr] gap-4 items-start">
+                    <div className="text-slate-400 text-xs font-bold uppercase tracking-wide">
+                      Week {item.releaseWeek}
+                    </div>
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-white font-bold">{item.title}</div>
+                          <div className="text-slate-500 text-sm">Installment {item.sequelNumber || "—"}</div>
+                        </div>
+                        <div className={`text-sm font-bold ${verdictColor(item.verdict)}`}>
+                          {item.verdict && item.verdict !== "N/A" ? item.verdict.replace(/_/g, " ") : "Released"}
+                        </div>
+                      </div>
+                      <div className="mt-3 text-slate-400 text-sm grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-slate-500">Box Office</div>
+                          <div className="text-white">{item.worldwideGross ? fmtMoney(item.worldwideGross) : "—"}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-500">Critic</div>
+                          <div className="text-white">{item.criticScore ?? "—"}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-500">Audience</div>
+                          <div className="text-white">{item.audienceScore ?? "—"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">

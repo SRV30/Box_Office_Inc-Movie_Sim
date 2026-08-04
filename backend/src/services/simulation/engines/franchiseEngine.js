@@ -36,6 +36,15 @@ const SUCCESS_VERDICTS = new Set([
 ]);
 const FAILURE_VERDICTS = new Set([VERDICTS.FLOP, VERDICTS.DISASTER]);
 
+const POPULARITY_SUCCESS_STEP = 5;
+const POPULARITY_FAILURE_STEP = 6;
+const POPULARITY_NEUTRAL_STEP = 1;
+const FAN_LOYALTY_SUCCESS_STEP = 4;
+const FAN_LOYALTY_FAILURE_STEP = 5;
+const FAN_LOYALTY_NEUTRAL_STEP = 1;
+const FRANCHISE_FATIGUE_START = 6;
+const FRANCHISE_FATIGUE_DECAY = 1;
+
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 /**
@@ -44,9 +53,9 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
  * verdict classification as studioGrowthEngine so the two stay consistent.
  *
  * @param {object} franchise - current stored franchise fields
- *                             ({ fanbaseMultiplier, prestigeBonus, totalRevenue }).
+ *                             ({ fanbaseMultiplier, prestigeBonus, totalRevenue, popularity, fanLoyalty, movieCount }).
  * @param {object} movie     - the released movie ({ verdict, worldwideGross }).
- * @returns {{ fanbaseMultiplier: number, prestigeBonus: number, totalRevenue: number }}
+ * @returns {{ fanbaseMultiplier: number, prestigeBonus: number, totalRevenue: number, movieCount: number, popularity: number, fanLoyalty: number }}
  */
 export const computeFranchiseProgress = (franchise = {}, movie = {}) => {
   const currentFanbase =
@@ -85,9 +94,42 @@ export const computeFranchiseProgress = (franchise = {}, movie = {}) => {
     FRANCHISE_PRESTIGE_MAX
   );
 
-  const totalRevenue = currentRevenue + (Number(movie.worldwideGross) || 0);
+  const currentPopularity =
+    typeof franchise.popularity === "number" ? franchise.popularity : 50;
+  const currentFanLoyalty =
+    typeof franchise.fanLoyalty === "number" ? franchise.fanLoyalty : 50;
+  const currentMovieCount =
+    typeof franchise.movieCount === "number" ? franchise.movieCount : 0;
 
-  return { fanbaseMultiplier, prestigeBonus, totalRevenue };
+  let popularity = currentPopularity;
+  let fanLoyalty = currentFanLoyalty;
+  const fatigueDecay = currentMovieCount > FRANCHISE_FATIGUE_START ? FRANCHISE_FATIGUE_DECAY : 0;
+
+  if (isSuccess) {
+    popularity += POPULARITY_SUCCESS_STEP - fatigueDecay;
+    fanLoyalty += FAN_LOYALTY_SUCCESS_STEP - fatigueDecay;
+  } else if (isFailure) {
+    popularity -= POPULARITY_FAILURE_STEP + fatigueDecay;
+    fanLoyalty -= FAN_LOYALTY_FAILURE_STEP + fatigueDecay;
+  } else {
+    popularity += POPULARITY_NEUTRAL_STEP - fatigueDecay;
+    fanLoyalty += FAN_LOYALTY_NEUTRAL_STEP - fatigueDecay;
+  }
+
+  const totalRevenue = currentRevenue + (Number(movie.worldwideGross) || 0);
+  const movieCount = currentMovieCount + 1;
+
+  popularity = clamp(popularity, 0, 100);
+  fanLoyalty = clamp(fanLoyalty, 0, 100);
+
+  return {
+    fanbaseMultiplier,
+    prestigeBonus,
+    totalRevenue,
+    movieCount,
+    popularity,
+    fanLoyalty,
+  };
 };
 
 /**
