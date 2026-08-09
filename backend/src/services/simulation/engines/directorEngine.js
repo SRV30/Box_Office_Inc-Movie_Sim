@@ -87,11 +87,13 @@ const archiveRetiredDirector = (gameState, directorData) => {
  */
 const ageMarketDirectorPool = ({ directors = [], gameState }) => {
   const activeDirectors = [];
+  const retiredDirectors = [];
   let retiredCount = 0;
 
   directors.forEach((director) => {
     if (director.status === "RETIRED") {
       archiveRetiredDirector(gameState, director);
+      retiredDirectors.push(director);
       return;
     }
 
@@ -100,13 +102,14 @@ const ageMarketDirectorPool = ({ directors = [], gameState }) => {
     if (director.age >= RETIREMENT_AGE) {
       archiveRetiredDirector(gameState, director);
       retiredCount += 1;
+      retiredDirectors.push(director);
       return;
     }
 
     activeDirectors.push(director);
   });
 
-  return { activeDirectors, retiredCount };
+  return { activeDirectors, retiredDirectors, retiredCount };
 };
 
 /**
@@ -188,9 +191,7 @@ export const processDirectorAging = async (gameState) => {
   });
 
   // Bulk-write updates: delete retired directors, update surviving ones
-  const retiredIds = marketDirectors
-    .slice(marketResult.activeDirectors.length)
-    .map((d) => d._id);
+  const retiredIds = marketResult.retiredDirectors.map((d) => d._id);
 
   if (retiredIds.length > 0) {
     await MarketDirector.deleteMany({ _id: { $in: retiredIds } });

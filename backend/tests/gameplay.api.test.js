@@ -3,11 +3,6 @@ import "./helpers/testEnv.js";
 import test, { before, after } from "node:test";
 import assert from "node:assert";
 import mongoose from "mongoose";
-import {
-  registerStudio,
-  authGet,
-  authPost,
-} from "./helpers/gameplayHelpers.js";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 
 // ---------------------------------------------------------------------------
@@ -87,12 +82,7 @@ const authPost = (path, token) =>
   });
 
 test("e2e: register seeds a studio with 10,000,000 starting funds", async () => {
-
-  const { token, studio } = await registerStudio(baseUrl);
-
   const { token, studio } = await registerStudio();
-
-
   assert.ok(token, "registration returns an access token");
   assert.strictEqual(studio.money, 10000000);
 });
@@ -108,19 +98,19 @@ test("e2e: newly registered studio starts with an empty owned actor roster", asy
   assert.strictEqual(owned.success, true);
 
   assert.ok(
-    Array.isArray(owned.ownedActors),
-    "ownedActors should be returned as an array",
+    Array.isArray(owned.actors),
+    "actors should be returned as an array",
   );
 
   assert.strictEqual(
-    owned.ownedActors.length,
+    owned.actors.length,
     0,
     "a newly registered studio should not own any actors",
   );
 });
 
 test("e2e: register -> browse actor market -> hire moves an actor to the owned roster", async () => {
-  const { token } = await registerStudio(baseUrl);
+  const { token } = await registerStudio();
 
   const marketRes = await authGet("/api/actors/", token);
   assert.strictEqual(marketRes.status, 200);
@@ -163,8 +153,9 @@ test("e2e: rehiring an already owned actor is rejected", async () => {
 
   const ownedBefore = firstHire.ownedActors.length;
 
-  // Attempt to hire the same actor again.
-  const secondHireRes = await authPost("/api/actors/hire/0", token);
+  // Attempt to hire the same actor again using their unique ID.
+  const hiredActorId = firstHire.actor.id;
+  const secondHireRes = await authPost(`/api/actors/hire/${hiredActorId}`, token);
 
   // Duplicate hire should fail.
   assert.notStrictEqual(

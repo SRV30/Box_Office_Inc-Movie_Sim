@@ -19,8 +19,15 @@ const ProtectedRoute = ({ children }) => {
   const [sessionRejected, setSessionRejected] = useState(false);
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
   // Guard: wait for studio data to load before rendering child routes
-  const [studioLoading, setStudioLoading] = useState(!!token);
+  const [studioLoading, setStudioLoading] = useState(!!token && !studioProfileFetched);
   const [studioLoaded, setStudioLoaded] = useState(false);
+
+  // Reset studio profile fetch flag when token is cleared (logout)
+  useEffect(() => {
+    if (!token) {
+      studioProfileFetched = false;
+    }
+  }, [token]);
 
   useEffect(() => {
     let isMounted = true;
