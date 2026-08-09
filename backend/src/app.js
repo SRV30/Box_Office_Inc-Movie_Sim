@@ -19,6 +19,8 @@ import streamingAuctionRoutes from "./routes/streamingAuctionRoutes.js";
 import bondMarketRoutes from "./routes/bondMarketRoutes.js";
 import upgradesRoutes from "./routes/upgradesRoutes.js";
 import directorRoutes from "./routes/directorRoutes.js";
+import awardsRoutes from "./routes/awardsRoutes.js";
+import streamingAuctionRoutes from "./routes/streamingAuctionRoutes.js";
 import actorsRoutes from "./routes/actorsRoutes.js";
 import academyRoutes from "./routes/academyRoutes.js";
 import crewRoutes from "./routes/crewRoutes.js";
@@ -142,9 +144,10 @@ app.use("/api/movies", apiRateLimiter, testScreeningRoutes);
 app.use("/api/records", apiRateLimiter, recordsRoutes);
 app.use("/api/insurance", apiRateLimiter, insuranceRoutes);
 app.use("/api/bond-market", apiRateLimiter, bondMarketRoutes);
+app.use("/api/streaming-auctions", apiRateLimiter, streamingAuctionRoutes);
 app.use("/api/crisis", apiRateLimiter, crisisRoutes);
-app.use("/api/facilities", apiRateLimiter, facilityRoutes);
-app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
+// app.use("/api/facilities", apiRateLimiter, facilityRoutes);
+// app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
 
 
 app.use((req, res) => {
