@@ -8,19 +8,19 @@ import compression from "compression";
 import env from "./config/envConfig.js";
 import requestIdMiddleware from "./middleware/requestIdMiddleware.js";
 import errorHandler from "./middleware/errorMiddleware.js";
-import { apiRateLimiter, authRateLimiter, simulationRateLimiter } from "./middleware/rateLimiter.js";
+import {
+  apiRateLimiter,
+  authRateLimiter,
+  simulationRateLimiter,
+} from "./middleware/rateLimiter.js";
 
 import marketingRoutes from "./routes/marketingRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import scriptRoutes from "./routes/scriptRoutes.js";
 import writersRoutes from "./routes/writersRoutes.js";
-import awardsRoutes from "./routes/awardsRoutes.js";
 import streamingAuctionRoutes from "./routes/streamingAuctionRoutes.js";
-import bondMarketRoutes from "./routes/bondMarketRoutes.js";
 import upgradesRoutes from "./routes/upgradesRoutes.js";
 import directorRoutes from "./routes/directorRoutes.js";
-import awardsRoutes from "./routes/awardsRoutes.js";
-import streamingAuctionRoutes from "./routes/streamingAuctionRoutes.js";
 import actorsRoutes from "./routes/actorsRoutes.js";
 import academyRoutes from "./routes/academyRoutes.js";
 import crewRoutes from "./routes/crewRoutes.js";
@@ -153,7 +153,6 @@ app.use("/api/crisis", apiRateLimiter, crisisRoutes);
 app.use("/api/cinematic-universes", apiRateLimiter, cinematicUniverseRoutes);
 // app.use("/api/facilities", apiRateLimiter, facilityRoutes);
 // app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
-
 
 app.use((req, res) => {
   res.status(404).json({
