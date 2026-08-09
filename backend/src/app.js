@@ -49,12 +49,14 @@ import contractRoutes from "./routes/contractRoutes.js";
 import testScreeningRoutes from "./routes/testScreeningRoutes.js";
 import recordsRoutes from "./routes/recordsRoutes.js";
 import insuranceRoutes from "./routes/insuranceRoutes.js";
+import facilityRoutes from "./routes/facilityRoutes.js";
+import agencyRoutes from "./routes/agencyRoutes.js";
 import crisisRoutes from "./routes/crisisRoutes.js";
 import merchandiseRoutes from "./routes/merchandiseRoutes.js";
 import awardsRoutes from "./routes/awardsRoutes.js";
 
-
 const app = express();
+app.set("trust proxy", true);
 
 const corsOrigins = env.CLIENT_URL
   ? env.CLIENT_URL.split(",").map((s) => s.trim())
@@ -113,7 +115,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.use("/api/auth", authRateLimiter, authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/scripts", apiRateLimiter, scriptRoutes);
 app.use("/api/writers", apiRateLimiter, writersRoutes);
 app.use("/api/upgrades", apiRateLimiter, upgradesRoutes);
