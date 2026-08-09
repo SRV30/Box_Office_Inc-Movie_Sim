@@ -175,22 +175,10 @@ Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** before contributing.
 
 ### 🌟 ECSOC 2026
 
-- Target Branch → `ecsoc`
-- Never create PRs against `main`.
-- PRs opened against `main` are automatically closed by repository automation.
 - Request issue assignment before starting work.
 - If you create an issue, add the **`ECSOC2026`** label.
 - If you create a PR, mention it is for **ECSOC 2026** and request the appropriate labels.
 - During review, project admins will apply the **`ECSoC26`** label **before merging** so ECSOC Sentinel can automatically process your contribution.
-
-### 🚀 ELUSOC 2026
-
-- Target Branch → `elusoc`
-- Never create PRs against `main`.
-- PRs opened against `main` are automatically closed.
-- Request issue assignment before starting work.
-- If you create an issue, add the **`ELUSOC2026`** label.
-- If you create a PR, mention it is for **ELUSOC 2026** and request the appropriate labels.
 
 ---
 
@@ -199,10 +187,6 @@ Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** before contributing.
 | Branch | Purpose |
 |---------|---------|
 | `main` | Stable production branch |
-| `ecsoc` | ECSOC 2026 contributions |
-| `elusoc` | ELUSOC 2026 contributions |
-
-> **⚠️ Pull Requests opened against `main` are automatically closed without human review. Always submit PRs to `ecsoc` or `elusoc` depending on your program.**
 
 ---
 
@@ -230,10 +214,6 @@ Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** before contributing.
 - `good-pr`
 - `good-ui`
 - `good-backend`
-
-### ELUSOC
-
-- `ELUSOC2026`
 
 ---
 

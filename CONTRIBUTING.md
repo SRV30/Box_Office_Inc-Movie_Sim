@@ -17,31 +17,9 @@ Please read the following guidelines carefully before contributing.
 
 ## 🌟 ECSOC 2026
 
-- **Target Branch:** `ecsoc`
-- **Do not create Pull Requests against `main`.**
-- Only work on issues that have been assigned to you by a project admin.
 - If you create a new issue related to ECSOC, please add the **`ECSOC2026`** label.
 - When opening your Pull Request, mention that it is an **ECSOC 2026** contribution and ensure the **`ECSOC2026`** label is applied if available.
 - During the review process, a project admin will apply the **`ECSoC26`** label **before the Pull Request is merged**. This ensures the ECSOC Sentinel bot can automatically detect and process your merged contribution without delays.
-
-## 🚀 ELUSOC 2026
-
-- **Target Branch:** `elusoc`
-- **Do not create Pull Requests against `main`.**
-- Only work on issues that have been assigned to you by a project admin.
-- If you create a new issue related to ELUSOC, please add the **`ELUSOC2026`** label.
-- When opening your Pull Request, mention that it is an **ELUSOC 2026** contribution and ensure the **`ELUSOC2026`** label is applied if available.
-
----
-
-# Branch Rules
-
-| Program | Target Branch |
-|----------|---------------|
-| ECSOC 2026 | `ecsoc` |
-| ELUSOC 2026 | `elusoc` |
-
-> **Important:** Pull Requests submitted to the wrong branch may be closed without review.
 
 ---
 
@@ -81,16 +59,8 @@ cd Box_Office_Inc-Movie_Sim
 ### ECSOC Contributors
 
 ```bash
-git checkout ecsoc
-git pull origin ecsoc
-git checkout -b feature/your-feature-name
-```
-
-### ELUSOC Contributors
-
-```bash
-git checkout elusoc
-git pull origin elusoc
+git checkout main
+git pull origin main
 git checkout -b feature/your-feature-name
 ```
 
@@ -134,13 +104,6 @@ refactor: optimize weekly simulation engine
 ---
 
 ## 8. Open a Pull Request
-
-Create your Pull Request against the correct branch.
-
-- ECSOC Contributors → `ecsoc`
-- ELUSOC Contributors → `elusoc`
-
-⚠️ **Important:** Pull Requests opened against the **`main`** branch are automatically detected by our repository automation and **will be closed immediately without human review**. Always target the appropriate program branch (`ecsoc` or `elusoc`) based on the open-source program you are participating in.
 
 Your PR should:
 
@@ -255,15 +218,15 @@ If your branch becomes outdated:
 ### ECSOC
 
 ```bash
-git checkout ecsoc
-git pull origin ecsoc
+git checkout main
+git pull origin main
 ```
 
 ### ELUSOC
 
 ```bash
-git checkout elusoc
-git pull origin elusoc
+git checkout main
+git pull origin main
 ```
 
 Resolve conflicts locally, test your changes again, and push the updated branch.
