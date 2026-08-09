@@ -8,7 +8,13 @@ const ProductionQueue = () => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("remainingWeeks");
-
+const productionStages = [
+  "script",
+  "pre_production",
+  "filming",
+  "post_production",
+  "released",
+];
   const fetchMovies = useCallback(async () => {
     try {
       setLoading(true);
@@ -63,7 +69,10 @@ const ProductionQueue = () => {
             </div>
         ) : (
             <div className="space-y-4">
-                {sortedMovies.map((movie) => (
+                {sortedMovies.map((movie) => {
+    const currentStageIndex = productionStages.indexOf(movie.status);
+
+    return (
                     <Link
                         key={movie._id}
                         to={`/movies/${movie._id}`}
@@ -99,7 +108,31 @@ const ProductionQueue = () => {
                                             <div className="bg-green-500 h-full" style={{ width: `${movie.productionProgress}%` }} />
                                         </div>
                                         <span className="text-white font-bold text-xs">{movie.productionProgress}%</span>
+                                    
                                     </div>
+<div className="flex flex-wrap gap-2 mt-4">
+  {productionStages.map((stage, index) => {
+    let stageClass =
+      "bg-slate-700 text-slate-400";
+
+    if (index < currentStageIndex) {
+      stageClass =
+        "bg-green-600 text-white";
+    } else if (index === currentStageIndex) {
+      stageClass =
+        "bg-blue-600 text-white";
+    }
+
+    return (
+      <span
+        key={stage}
+        className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${stageClass}`}
+      >
+        {stage.replace("_", " ")}
+      </span>
+    );
+  })}
+</div>
                                 </div>
                                 <ChevronRight size={20} className="text-slate-700 group-hover:text-violet-500 transition-colors" />
                             </div>

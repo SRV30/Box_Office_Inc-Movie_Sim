@@ -52,6 +52,7 @@ import TalentAcademy from "./pages/talent/TalentAcademy";
 import TrophyRoom from "./pages/awards/TrophyRoom";
 import AwardsSeasonDashboard from "./pages/awards/AwardsSeasonDashboard";
 import StudioUpgrades from "./pages/studio/StudioUpgrades";
+import UnionManager from "./pages/studio/UnionManager";
 
 function App() {
   return (
@@ -340,6 +341,14 @@ function App() {
           element={
             <ProtectedRoute>
               <StudioUpgrades />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/union"
+          element={
+            <ProtectedRoute>
+              <UnionManager />
             </ProtectedRoute>
           }
         />
