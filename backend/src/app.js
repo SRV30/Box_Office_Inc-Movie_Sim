@@ -151,8 +151,8 @@ app.use("/api/bond-market", apiRateLimiter, bondMarketRoutes);
 app.use("/api/streaming-auctions", apiRateLimiter, streamingAuctionRoutes);
 app.use("/api/crisis", apiRateLimiter, crisisRoutes);
 app.use("/api/cinematic-universes", apiRateLimiter, cinematicUniverseRoutes);
-// app.use("/api/facilities", apiRateLimiter, facilityRoutes);
-// app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
+app.use("/api/facilities", apiRateLimiter, facilityRoutes);
+app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -164,5 +164,8 @@ app.use((req, res) => {
 });
 
 app.use(errorHandler);
+
+app.use("/api/merchandise", apiRateLimiter, merchandiseRoutes);
+app.use("/api/awards", apiRateLimiter, awardsRoutes);
 
 export default app;
