@@ -1,3 +1,4 @@
+import cache from "./middleware/cacheMiddleware.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -133,7 +134,7 @@ app.use("/api/streaming", apiRateLimiter, streamingRoutes);
 app.use("/api/tv-shows", apiRateLimiter, tvShowRoutes);
 app.use("/api/rival-studios", apiRateLimiter, rivalsRoutes);
 app.use("/api/spy", apiRateLimiter, spyRoutes);
-app.use("/api/leaderboard", apiRateLimiter, leaderboardRoutes);
+app.use("/api/leaderboard", apiRateLimiter, cache(60), leaderboardRoutes);
 app.use("/api/studios/loans", apiRateLimiter, loanRoutes);
 app.use("/api/studios", apiRateLimiter, studioRoutes);
 app.use("/api/marketing", apiRateLimiter, marketingRoutes);

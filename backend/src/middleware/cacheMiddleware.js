@@ -1,0 +1,1 @@
+export default (ttl) => (req, res, next) => next();
