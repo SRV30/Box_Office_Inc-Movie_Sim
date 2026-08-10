@@ -19,7 +19,8 @@ export const rateLimiter = (options = {}) => {
       entry = { windowStart: now, count: 0 };
       requestCounts.set(key, entry);
 
-      const timer = setTimeout(() => {
+      if (entry.timer) clearTimeout(entry.timer);
+      entry.timer = setTimeout(() => {
         if (requestCounts.get(key) === entry) {
           requestCounts.delete(key);
         }
