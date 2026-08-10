@@ -20,7 +20,7 @@ export const startAwardsCampaign = async (req, res) => {
       return res.status(404).json({ success: false, message: "Studio not found" });
     }
 
-    if (studio.money < CAMPAIGN_COST) {
+    if (studio.money < AWARDS_CAMPAIGN_COST) {
       return res.status(400).json({ success: false, message: "Insufficient funds for an awards campaign" });
     }
 
