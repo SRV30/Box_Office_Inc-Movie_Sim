@@ -20,7 +20,7 @@
     "react-redux": "^9.3.0",
     "react-router-dom": "^7.16.0",
     "recharts": "^3.9.1",
-    "tailwindcss": "^4.3.0"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
