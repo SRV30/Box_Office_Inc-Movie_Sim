@@ -9,7 +9,7 @@ export const launchAwardsCampaign = async (req, res) => {
     const studioId = req.user.studioId || req.user._id;
 
     const studio = await Studio.findById(studioId);
-    if (!studio || studio.balance < campaignBudget) {
+    if (!studio || studio.money < campaignBudget) {
       return res.status(400).json({ message: "Insufficient studio funds for FYC campaign" });
     }
 
@@ -29,7 +29,7 @@ export const launchAwardsCampaign = async (req, res) => {
       voterSentimentScore: initialSentiment,
     });
 
-    await Studio.findByIdAndUpdate(studioId, { $inc: { balance: -campaignBudget } });
+    await Studio.findByIdAndUpdate(studioId, { $inc: { money: -campaignBudget } });
 
     return res.status(201).json({ success: true, campaign });
   } catch (error) {
