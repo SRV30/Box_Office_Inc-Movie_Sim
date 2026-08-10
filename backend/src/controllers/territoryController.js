@@ -5,7 +5,11 @@ import { calculateTerritoryDealOffer } from "../services/simulation/engines/terr
 
 export const getStudioTerritoryDeals = async (req, res, next) => {
   try {
-    const deals = await TerritoryLicensing.find({ studioId: req.user.studioId }).populate("movieId", "title posterUrl");
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+    const deals = await TerritoryLicensing.find({ studioId: studio._id }).populate("movieId", "title posterUrl");
     return res.status(200).json({ success: true, data: deals });
   } catch (error) {
     next(error);
@@ -37,7 +41,10 @@ export const signTerritoryDeal = async (req, res, next) => {
 
     const offer = calculateTerritoryDealOffer(movie, region, dealType);
 
-    const studio = await Studio.findById(req.user.studioId);
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
     if (studio.money < offer.localizationCost) {
       return res.status(400).json({ success: false, message: "Insufficient funds for territory dubbing & localization" });
     }
@@ -47,7 +54,7 @@ export const signTerritoryDeal = async (req, res, next) => {
     await studio.save();
 
     const deal = await TerritoryLicensing.create({
-      studioId: req.user.studioId,
+      studioId: studio._id,
       movieId,
       region,
       dealType,
