@@ -1,6 +1,6 @@
 import app from "./src/app.js";
 import env from "./src/config/envConfig.js";
-import connectDB from "./src/config/db.js";
+import { connectDB, disconnectDB } from "./src/config/db.js";
 
 import "./src/models/index.js";
 
@@ -8,7 +8,7 @@ const signals = ["SIGTERM", "SIGINT"];
 
 const gracefulShutdown = (signal) => {
   console.log(`\n[Server] Received ${signal}. Shutting down gracefully...`);
-  process.exit(0);
+  server.close(() => { disconnectDB().then(() => process.exit(0)) });
 };
 
 for (const signal of signals) {
