@@ -5,7 +5,11 @@ import { calculateSyndicationValuation } from "../services/simulation/engines/sy
 
 export const getStudioSyndicationDeals = async (req, res, next) => {
   try {
-    const deals = await SyndicationDeal.find({ studioId: req.user.studioId }).populate("movieId", "title posterUrl boxOffice");
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+    const deals = await SyndicationDeal.find({ studioId: studio._id }).populate("movieId", "title posterUrl boxOffice");
     return res.status(200).json({ success: true, data: deals });
   } catch (error) {
     next(error);
@@ -36,8 +40,13 @@ export const createSyndicationDeal = async (req, res, next) => {
 
     const valuation = calculateSyndicationValuation(movie);
 
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
     const deal = await SyndicationDeal.create({
-      studioId: req.user.studioId,
+      studioId: studio._id,
       movieId,
       networkName,
       dealType,
@@ -49,7 +58,7 @@ export const createSyndicationDeal = async (req, res, next) => {
     });
 
     // Credit upfront bonus to studio money
-    await Studio.findByIdAndUpdate(req.user.studioId, {
+    await Studio.findByIdAndUpdate(studio._id, {
       $inc: { money: valuation.upfrontBonus },
     });
 

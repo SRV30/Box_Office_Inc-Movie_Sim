@@ -4,7 +4,11 @@ import { evaluateCrisisResolution } from "../services/simulation/engines/crisisE
 
 export const getActiveCrises = async (req, res, next) => {
   try {
-    const crises = await PRCrisis.find({ studioId: req.user.studioId, status: "ACTIVE" });
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+    const crises = await PRCrisis.find({ studioId: studio._id, status: "ACTIVE" });
     return res.status(200).json({ success: true, data: crises });
   } catch (error) {
     next(error);
@@ -15,14 +19,18 @@ export const resolveCrisis = async (req, res, next) => {
   try {
     const { crisisId, strategy } = req.body;
 
-    const crisis = await PRCrisis.findOne({ _id: crisisId, studioId: req.user.studioId });
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const crisis = await PRCrisis.findOne({ _id: crisisId, studioId: studio._id });
     if (!crisis) {
       return res.status(404).json({ success: false, message: "Crisis not found" });
     }
 
     const resolution = evaluateCrisisResolution(crisis, strategy);
 
-    const studio = await Studio.findById(req.user.studioId);
     if (studio.money < resolution.cost) {
       return res.status(400).json({ success: false, message: "Insufficient studio funds for selected PR strategy" });
     }
