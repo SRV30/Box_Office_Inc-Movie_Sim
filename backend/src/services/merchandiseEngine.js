@@ -72,9 +72,9 @@ export async function processWeeklyMerchandiseSales() {
 
       await deal.save();
 
-      // Add earnings to studio balance
+      // Add earnings to studio money
       await Studio.findByIdAndUpdate(deal.studioId, {
-        $inc: { balance: studioRoyaltyCut, lifetimeEarnings: studioRoyaltyCut },
+        $inc: { money: studioRoyaltyCut },
       });
 
       totalProcessedRevenue += studioRoyaltyCut;

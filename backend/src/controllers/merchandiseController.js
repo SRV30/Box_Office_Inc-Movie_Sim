@@ -47,7 +47,7 @@ export const createMerchandiseDeal = async (req, res) => {
 
     // Credit advance royalty to studio
     await Studio.findByIdAndUpdate(studioId, {
-      $inc: { balance: valuation.advanceRoyalty, lifetimeEarnings: valuation.advanceRoyalty },
+      $inc: { money: valuation.advanceRoyalty },
     });
 
     return res.status(201).json({ success: true, deal });
