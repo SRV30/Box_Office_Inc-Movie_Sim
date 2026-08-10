@@ -19,7 +19,7 @@
     "react-dom": "^19.2.6",
     "react-redux": "^9.3.0",
     "react-router-dom": "^7.16.0",
-    "recharts": "^3.9.1",
+    "recharts": "^3.10.1",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
