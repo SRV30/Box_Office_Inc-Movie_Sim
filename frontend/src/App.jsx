@@ -25,6 +25,7 @@ import ReviewDashboard from "./pages/movies/ReviewDashboard";
 import ProductionQueue from "./pages/movies/ProductionQueue";
 import MovieComparison from "./pages/movies/MovieComparison";
 import StreamingDeals from "./pages/movies/StreamingDeals";
+import StreamingBiddingHall from "./pages/streaming/StreamingBiddingHall";
 import TVShowsHub from "./pages/tvshows/TVShowsHub";
 import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
 import StudioStats from "./pages/studio/StudioStats";
@@ -140,6 +141,14 @@ function App() {
           element={
             <ProtectedRoute>
               <StreamingDeals />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/streaming/auctions"
+          element={
+            <ProtectedRoute>
+              <StreamingBiddingHall />
             </ProtectedRoute>
           }
         />
