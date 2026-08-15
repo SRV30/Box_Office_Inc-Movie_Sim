@@ -16,6 +16,7 @@ import {
   Newspaper,
   Swords,
   Trophy,
+  Tv,
 } from "lucide-react";
 
 import { Link, useLocation } from "react-router-dom";
@@ -64,6 +65,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       name: "Library",
       path: "/movies/library",
       icon: Film,
+    },
+    {
+      name: "Streaming Hub",
+      path: "/streaming/catalog",
+      icon: Tv,
     },
     {
       name: "Production Queue",
