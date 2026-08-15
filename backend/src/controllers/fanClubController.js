@@ -6,6 +6,45 @@ import Notification from "../models/Notification.js";
 const findGameState = async (userId) => GameState.findOne({ user: userId });
 
 /**
+ * Get current Fan Club & Convention details
+ * GET /api/studios/fanclub
+ */
+export const getFanClubDetails = async (req, res) => {
+  try {
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const gameState = await findGameState(req.user._id);
+
+    if (!studio.fanClub) {
+      studio.fanClub = { weeklyBudget: 0, totalFans: 0, lastConventionWeek: null };
+      await studio.save();
+    }
+
+    const currentWeek = gameState?.currentWeek || 1;
+    const lastConvention = studio.fanClub.lastConventionWeek;
+    const cooldownRemaining = lastConvention !== null ? Math.max(0, 52 - (currentWeek - lastConvention)) : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        fanClub: studio.fanClub,
+        studioFans: studio.fans || 0,
+        studioMoney: studio.money || 0,
+        currentWeek,
+        cooldownRemaining,
+        canHostConvention: cooldownRemaining === 0 && (studio.money || 0) >= 2000000,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting fan club details:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+/**
  * Adjust weekly fan club maintenance budget.
  * PUT /api/studios/fanclub/budget
  */
