@@ -7,6 +7,7 @@ import {
   calculateContractBreachPenalty,
   evaluateContractRenegotiation,
 } from "../src/services/simulation/engines/contractEngine.js";
+import { validateContractNegotiationSchema, validateContractRenegotiationSchema } from "../src/validators/contractValidators.js";
 
 describe("Contract Engine Unit Tests", () => {
   test("evaluateContractOffer accepts generous offer for popular talent", () => {
@@ -37,5 +38,14 @@ describe("Contract Engine Unit Tests", () => {
     const result = evaluateContractRenegotiation(current, newOffer);
     assert.equal(result.approved, true);
   });
-});
 
+  test("validateContractNegotiationSchema validates correctly", () => {
+    const parsed = validateContractNegotiationSchema.body.parse({
+      talentId: "talent_123",
+      talentType: "ACTOR",
+      offer: { baseSalary: 500000, backendPoints: 10, movieCount: 3 },
+    });
+    assert.equal(parsed.talentType, "ACTOR");
+    assert.equal(parsed.offer.movieCount, 3);
+  });
+});

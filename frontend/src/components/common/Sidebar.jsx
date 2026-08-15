@@ -16,6 +16,7 @@ import {
   Newspaper,
   Swords,
   Trophy,
+  FileText,
 } from "lucide-react";
 
 import { Link, useLocation } from "react-router-dom";
@@ -99,6 +100,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       name: "Actors",
       path: "/actors",
       icon: Users,
+    },
+    {
+      name: "Talent Contracts",
+      path: "/talent/contracts",
+      icon: FileText,
     },
     {
       name: "Crew Market",
