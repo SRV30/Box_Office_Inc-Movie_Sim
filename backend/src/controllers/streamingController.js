@@ -10,7 +10,7 @@ export const getPlatforms = async (req, res) => {
     const gameState = await GameState.findOne({ user: req.user._id })
       .populate({
           path: "streamingPlatforms.exclusiveMovies",
-          select: "title quality hype"
+          select: "title quality hype verdict profit roi boxOffice releaseWeek"
       });
 
     if (!gameState) {
@@ -18,6 +18,60 @@ export const getPlatforms = async (req, res) => {
     }
 
     res.status(200).json({ success: true, platforms: gameState.streamingPlatforms || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get aggregated streaming catalog across platforms
+export const getStreamingCatalog = async (req, res) => {
+  try {
+    const gameState = await GameState.findOne({ user: req.user._id })
+      .populate({
+        path: "streamingPlatforms.exclusiveMovies",
+        select: "title quality hype verdict profit roi boxOffice releaseWeek releaseType poster"
+      });
+
+    if (!gameState) {
+      return res.status(404).json({ success: false, message: "Game state not found" });
+    }
+
+    const { platformId, search } = req.query;
+
+    let allMovies = [];
+    const platforms = gameState.streamingPlatforms || [];
+
+    platforms.forEach((plat) => {
+      if (!platformId || plat.id === platformId) {
+        (plat.exclusiveMovies || []).forEach((mov) => {
+          allMovies.push({
+            ...mov.toObject(),
+            platformId: plat.id,
+            platformName: plat.name,
+            platformPopularity: plat.popularity,
+          });
+        });
+      }
+    });
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      allMovies = allMovies.filter((m) => m.title && m.title.toLowerCase().includes(q));
+    }
+
+    res.status(200).json({
+      success: true,
+      count: allMovies.length,
+      movies: allMovies,
+      platforms: platforms.map(p => ({
+        id: p.id,
+        name: p.name,
+        subscribers: p.subscribers,
+        popularity: p.popularity,
+        contentBudget: p.contentBudget,
+        exclusiveCount: p.exclusiveMovies ? p.exclusiveMovies.length : 0,
+      })),
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -56,7 +110,6 @@ export const getStreamingStrategy = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 // Accept a streaming deal for a movie
 export const acceptStreamingDeal = async (req, res) => {
