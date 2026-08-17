@@ -13,3 +13,13 @@ export const acceptStreamingDealSchema = {
 export const streamingStrategyParamsSchema = {
   params: movieIdParam,
 };
+
+/** Validates query params for GET /streaming/catalog */
+export const streamingCatalogQuerySchema = {
+  query: z.object({
+    platformId: z.string().optional(),
+    search: z.string().optional(),
+    page: z.string().optional(),
+    limit: z.string().optional(),
+  }),
+};
