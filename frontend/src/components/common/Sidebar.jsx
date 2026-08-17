@@ -67,6 +67,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Film,
     },
     {
+      name: "Streaming Hub",
+      path: "/streaming/catalog",
+      icon: Tv,
+    },
+    {
       name: "Production Queue",
       path: "/movies/queue",
       icon: Layers,

@@ -25,6 +25,7 @@ import ReviewDashboard from "./pages/movies/ReviewDashboard";
 import ProductionQueue from "./pages/movies/ProductionQueue";
 import MovieComparison from "./pages/movies/MovieComparison";
 import StreamingDeals from "./pages/movies/StreamingDeals";
+import StreamingCatalogHub from "./pages/streaming/StreamingCatalogHub";
 import TVShowsHub from "./pages/tvshows/TVShowsHub";
 import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
 import StudioStats from "./pages/studio/StudioStats";
@@ -141,6 +142,14 @@ function App() {
           element={
             <ProtectedRoute>
               <StreamingDeals />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/streaming/catalog"
+          element={
+            <ProtectedRoute>
+              <StreamingCatalogHub />
             </ProtectedRoute>
           }
         />
