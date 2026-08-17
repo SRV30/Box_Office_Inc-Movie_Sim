@@ -6,8 +6,8 @@ import Studio from "../models/Studio.js";
  * Calculates platform valuation & bids for a film based on quality, genre, and box office
  */
 export function calculatePlatformBids(movie, windowType, askingPrice) {
-  const baseValuation = (movie.boxOfficeTotal || movie.budget || 2000000) * 0.4;
-  const ratingMult = Math.max(0.6, (movie.rating || 50) / 50);
+  const baseValuation = (movie.worldwideGross || movie.boxOffice || movie.budget || 2000000) * 0.4;
+  const ratingMult = Math.max(0.6, ((movie.criticScore || movie.quality || 50) / 50));
 
   const platforms = [
     { name: "NetCinema", budgetMultiplier: 1.25 },
@@ -48,9 +48,9 @@ export async function runStreamingAuction(auctionId) {
   auction.status = "COMPLETED";
   await auction.save();
 
-  // Credit winning bid payout to studio
+  // Credit winning bid payout to studio money
   await Studio.findByIdAndUpdate(auction.studioId, {
-    $inc: { balance: highestBid.amount, lifetimeEarnings: highestBid.amount },
+    $inc: { money: highestBid.amount },
   });
 
   return auction;
