@@ -153,6 +153,14 @@ function App() {
           }
         />
         <Route
+          path="/streaming/catalog"
+          element={
+            <ProtectedRoute>
+              <StreamingCatalogHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/movies/library"
           element={
             <ProtectedRoute>

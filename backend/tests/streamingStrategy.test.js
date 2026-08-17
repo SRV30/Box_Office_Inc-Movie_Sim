@@ -4,6 +4,7 @@ import {
   calculateStreamingRevenuePotential,
   computeHybridReleaseStrategy,
 } from "../src/services/simulation/engines/streamingEngine.js";
+import { streamingCatalogQuerySchema } from "../src/validators/streamingValidators.js";
 
 describe("Streaming Release Strategy Engine", () => {
   test("calculateStreamingRevenuePotential returns positive potential and conversion rate", () => {
@@ -36,5 +37,14 @@ describe("Streaming Release Strategy Engine", () => {
   test("computeHybridReleaseStrategy recommends EARLY_STREAMING_PIVOT for underperformers", () => {
     const result = computeHybridReleaseStrategy(10_000_000, 100_000_000, 1);
     assert.equal(result.recommendation, "EARLY_STREAMING_PIVOT");
+  });
+
+  test("streamingCatalogQuerySchema validates query parameters accurately", () => {
+    const parsed = streamingCatalogQuerySchema.query.parse({
+      platformId: "netflix_id",
+      search: "Inception",
+    });
+    assert.equal(parsed.platformId, "netflix_id");
+    assert.equal(parsed.search, "Inception");
   });
 });
