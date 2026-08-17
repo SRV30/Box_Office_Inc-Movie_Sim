@@ -153,10 +153,10 @@ function App() {
           }
         />
         <Route
-          path="/streaming/catalog"
+          path="/streaming/auctions"
           element={
             <ProtectedRoute>
-              <StreamingCatalogHub />
+              <StreamingBiddingHall />
             </ProtectedRoute>
           }
         />
