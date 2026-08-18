@@ -54,3 +54,16 @@ test("fanClubEngine: skips budget and growth on insufficient funds", () => {
   assert.strictEqual(studio.fanClub.totalFans, 500);
   assert.strictEqual(studio.fans, 1000);
 });
+
+test("fanClubEngine: handles zero budget gracefully", () => {
+  const gameState = { currentWeek: 2, notifications: [] };
+  const studio = {
+    money: 500000,
+    fans: 200,
+    fanClub: { weeklyBudget: 0, totalFans: 200, lastConventionWeek: 1 },
+  };
+
+  processFanClubTick(gameState, studio);
+  assert.strictEqual(studio.money, 500000);
+  assert.strictEqual(studio.fanClub.totalFans, 200);
+});

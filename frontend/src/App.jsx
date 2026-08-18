@@ -38,6 +38,7 @@ import Franchises from "./pages/studio/Franchises";
 import FranchiseDetail from "./pages/studio/FranchiseDetail";
 import Leaderboard from "./pages/studio/Leaderboard";
 import HistoricRecords from "./pages/studio/HistoricRecords";
+import FanClubHub from "./pages/studio/FanClubHub";
 import TalentProfile from "./pages/talent/TalentProfile";
 import TalentContractsManager from "./pages/talent/TalentContractsManager";
 import DirectorProfile from "./pages/directors/DirectorProfile";
@@ -344,6 +345,14 @@ function App() {
           element={
             <ProtectedRoute>
               <FinancialHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/fanclub"
+          element={
+            <ProtectedRoute>
+              <FanClubHub />
             </ProtectedRoute>
           }
         />
