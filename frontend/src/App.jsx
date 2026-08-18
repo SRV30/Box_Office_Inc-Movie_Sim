@@ -40,6 +40,7 @@ import Leaderboard from "./pages/studio/Leaderboard";
 import HistoricRecords from "./pages/studio/HistoricRecords";
 import FanClubHub from "./pages/studio/FanClubHub";
 import TalentProfile from "./pages/talent/TalentProfile";
+import TalentContractsManager from "./pages/talent/TalentContractsManager";
 import DirectorProfile from "./pages/directors/DirectorProfile";
 import WriterProfile from "./pages/writers/WriterProfile";
 import Notifications from "./pages/notifications/Notifications";
@@ -268,6 +269,15 @@ function App() {
           element={
             <ProtectedRoute>
               <DirectorProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/talent/contracts"
+          element={
+            <ProtectedRoute>
+              <TalentContractsManager />
             </ProtectedRoute>
           }
         />
