@@ -25,7 +25,7 @@ import ReviewDashboard from "./pages/movies/ReviewDashboard";
 import ProductionQueue from "./pages/movies/ProductionQueue";
 import MovieComparison from "./pages/movies/MovieComparison";
 import StreamingDeals from "./pages/movies/StreamingDeals";
-import StreamingBiddingHall from "./pages/streaming/StreamingBiddingHall";
+import RegionalBoxOfficeHub from "./pages/movies/RegionalBoxOfficeHub";
 import TVShowsHub from "./pages/tvshows/TVShowsHub";
 import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
 import StudioStats from "./pages/studio/StudioStats";
@@ -125,6 +125,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ReadyForRelease />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/movies/telemetry"
+          element={
+            <ProtectedRoute>
+              <RegionalBoxOfficeHub />
             </ProtectedRoute>
           }
         />
