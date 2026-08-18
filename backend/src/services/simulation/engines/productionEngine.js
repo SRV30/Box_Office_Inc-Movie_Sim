@@ -201,4 +201,13 @@ const releaseTalent = (gameState, movie) => {
     crewTeam.status = "AVAILABLE";
     crewTeam.busyUntilWeek = null;
   }
+  if (movie.supportingActorIds && movie.supportingActorIds.length > 0) {
+    movie.supportingActorIds.forEach(actorId => {
+      const sActor = gameState.ownedActors.find(a => a.id === actorId);
+      if (sActor) {
+        sActor.status = "AVAILABLE";
+        sActor.busyUntilWeek = null;
+      }
+    });
+  }
 };

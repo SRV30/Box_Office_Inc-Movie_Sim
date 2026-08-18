@@ -99,23 +99,23 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
   // 4. Update Careers
   processCareerImpact(gameState, movie, writer, director, leadActor, crewTeam);
 
-  // 5. Release Talent (Set back to AVAILABLE)
-  if (director) {
+  // 5. Release Talent (Set back to AVAILABLE if not currently busy with a future project)
+  if (director && (!director.busyUntilWeek || director.busyUntilWeek <= gameState.currentWeek)) {
     director.status = "AVAILABLE";
     director.busyUntilWeek = null;
   }
-  if (leadActor) {
+  if (leadActor && (!leadActor.busyUntilWeek || leadActor.busyUntilWeek <= gameState.currentWeek)) {
     leadActor.status = "AVAILABLE";
     leadActor.busyUntilWeek = null;
   }
-  if (crewTeam) {
+  if (crewTeam && (!crewTeam.busyUntilWeek || crewTeam.busyUntilWeek <= gameState.currentWeek)) {
     crewTeam.status = "AVAILABLE";
     crewTeam.busyUntilWeek = null;
   }
   if (movie.supportingActorIds && movie.supportingActorIds.length > 0) {
     movie.supportingActorIds.forEach(actorId => {
       const sActor = gameState.ownedActors.find(a => a.id === actorId);
-      if (sActor) {
+      if (sActor && (!sActor.busyUntilWeek || sActor.busyUntilWeek <= gameState.currentWeek)) {
         sActor.status = "AVAILABLE";
         sActor.busyUntilWeek = null;
       }
