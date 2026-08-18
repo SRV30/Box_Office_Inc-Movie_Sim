@@ -9,3 +9,9 @@ export const validateClashAnalyticsSchema = {
     movieId: z.string().min(1, "movieId parameter is required"),
   }),
 };
+
+export const validateBoxOfficeAnalyticsSchema = {
+  params: z.object({
+    movieId: z.string().min(1, "movieId parameter is required"),
+  }),
+};
