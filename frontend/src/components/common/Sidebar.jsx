@@ -67,9 +67,9 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Film,
     },
     {
-      name: "Streaming Auctions",
-      path: "/streaming/auctions",
-      icon: Gavel,
+      name: "Box Office Telemetry",
+      path: "/movies/telemetry",
+      icon: Globe,
     },
     {
       name: "Production Queue",
