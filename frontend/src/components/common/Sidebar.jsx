@@ -17,6 +17,7 @@ import {
   Swords,
   Trophy,
   Heart,
+  Tv,
 } from "lucide-react";
 
 import { Link, useLocation } from "react-router-dom";
@@ -165,6 +166,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       name: "Crew Union",
       path: "/studio/union",
       icon: Scale,
+    },
+    {
+      name: "TV Syndication",
+      path: "/studio/syndication",
+      icon: Tv,
     },
     {
       name: "Franchises",
