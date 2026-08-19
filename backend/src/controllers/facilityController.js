@@ -4,7 +4,12 @@ import { calculateFacilityUpgrade } from "../services/simulation/engines/facilit
 
 export const getStudioFacilities = async (req, res, next) => {
   try {
-    const facilities = await StudioFacility.find({ studioId: req.user.studioId });
+    const studio = await Studio.findOne({ owner: req.user._id });
+    const studioId = studio ? studio._id : req.user.studioId;
+    if (!studioId) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+    const facilities = await StudioFacility.find({ studioId });
     return res.status(200).json({ success: true, data: facilities });
   } catch (error) {
     next(error);
@@ -14,12 +19,16 @@ export const getStudioFacilities = async (req, res, next) => {
 export const buildFacility = async (req, res, next) => {
   try {
     const { facilityType } = req.body;
+    const studio = await Studio.findOne({ owner: req.user._id });
+    const studioId = studio ? studio._id : req.user.studioId;
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
 
-    const existing = await StudioFacility.findOne({ studioId: req.user.studioId, facilityType });
+    const existing = await StudioFacility.findOne({ studioId, facilityType });
     const currentTier = existing ? existing.tierLevel : 0;
     const upgradeDetails = calculateFacilityUpgrade(facilityType, currentTier || 1);
 
-    const studio = await Studio.findById(req.user.studioId);
     if (studio.money < upgradeDetails.cost) {
       return res.status(400).json({ success: false, message: "Insufficient studio funds to build facility" });
     }
@@ -36,7 +45,7 @@ export const buildFacility = async (req, res, next) => {
       facility = await existing.save();
     } else {
       facility = await StudioFacility.create({
-        studioId: req.user.studioId,
+        studioId,
         facilityType,
         tierLevel: 1,
         qualityBoost: upgradeDetails.qualityBoost,
@@ -58,8 +67,10 @@ export const buildFacility = async (req, res, next) => {
 export const toggleFacilityRental = async (req, res, next) => {
   try {
     const { facilityId, isRentedToThirdParty } = req.body;
+    const studio = await Studio.findOne({ owner: req.user._id });
+    const studioId = studio ? studio._id : req.user.studioId;
 
-    const facility = await StudioFacility.findOne({ _id: facilityId, studioId: req.user.studioId });
+    const facility = await StudioFacility.findOne({ _id: facilityId, studioId });
     if (!facility) {
       return res.status(404).json({ success: false, message: "Facility not found" });
     }

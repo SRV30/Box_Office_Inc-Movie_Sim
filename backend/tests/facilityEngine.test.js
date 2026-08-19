@@ -26,4 +26,24 @@ describe("Facility Engine Unit Tests", () => {
     assert.strictEqual(result.totalRentalIncome, 15000);
     assert.strictEqual(result.netFinancialFlow, 0);
   });
+
+  it("calculateFacilityUpgrade caps tier at 5 and supports all facility types", () => {
+    const maxTier = calculateFacilityUpgrade("SOUNDSTAGE_COMPLEX", 5);
+    assert.strictEqual(maxTier.nextTier, 5);
+
+    const postProd = calculateFacilityUpgrade("POST_PRODUCTION_SUITE", 2);
+    assert.strictEqual(postProd.cost, 700000);
+    assert.strictEqual(postProd.qualityBoost, 12);
+
+    const backlot = calculateFacilityUpgrade("BACKLOT_SET", 1);
+    assert.strictEqual(backlot.cost, 450000);
+    assert.strictEqual(backlot.qualityBoost, 8);
+  });
+
+  it("handles empty facilities list in processWeeklyFacilities", () => {
+    const result = processWeeklyFacilities([]);
+    assert.strictEqual(result.totalMaintenance, 0);
+    assert.strictEqual(result.totalRentalIncome, 0);
+    assert.strictEqual(result.netFinancialFlow, 0);
+  });
 });

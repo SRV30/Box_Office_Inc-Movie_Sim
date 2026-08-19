@@ -167,6 +167,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Scale,
     },
     {
+      name: "Studio Facilities",
+      path: "/studio/facilities",
+      icon: Building2,
+    },
+    {
       name: "Franchises",
       path: "/studio/franchises",
       icon: Layers,
