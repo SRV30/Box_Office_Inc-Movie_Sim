@@ -56,6 +56,7 @@ import TrophyRoom from "./pages/awards/TrophyRoom";
 import AwardsSeasonDashboard from "./pages/awards/AwardsSeasonDashboard";
 import StudioUpgrades from "./pages/studio/StudioUpgrades";
 import UnionManager from "./pages/studio/UnionManager";
+import FestivalCircuit from "./pages/studio/FestivalCircuit";
 
 function App() {
   return (
@@ -385,6 +386,14 @@ function App() {
           element={
             <ProtectedRoute>
               <UnionManager />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/festivals"
+          element={
+            <ProtectedRoute>
+              <FestivalCircuit />
             </ProtectedRoute>
           }
         />

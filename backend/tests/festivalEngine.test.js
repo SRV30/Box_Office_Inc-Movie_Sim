@@ -29,5 +29,19 @@ describe("Film Festival Engine Unit Tests", () => {
     const offer = calculateMarketDistributionOffer(85, 2000000);
     assert.ok(offer > 2000000);
   });
+
+  test("calculateFestivalJuryScore handles SUNDANCE, VENICE, and TIFF festivals", () => {
+    const movie = { quality: 80, criticScore: 90 };
+    const sundanceScore = calculateFestivalJuryScore(movie, "SUNDANCE");
+    assert.ok(sundanceScore >= 70 && sundanceScore <= 100);
+
+    const veniceScore = calculateFestivalJuryScore(movie, "VENICE");
+    assert.ok(veniceScore >= 70 && veniceScore <= 100);
+  });
+
+  test("calculateMarketDistributionOffer returns 0 for sub-60 jury scores", () => {
+    const lowOffer = calculateMarketDistributionOffer(45, 5000000);
+    assert.equal(lowOffer, 0);
+  });
 });
 
