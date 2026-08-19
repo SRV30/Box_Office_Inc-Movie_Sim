@@ -17,6 +17,7 @@ import {
   Swords,
   Trophy,
   Heart,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Link, useLocation } from "react-router-dom";
@@ -165,6 +166,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       name: "Crew Union",
       path: "/studio/union",
       icon: Scale,
+    },
+    {
+      name: "PR Crisis Center",
+      path: "/studio/crisis",
+      icon: AlertTriangle,
     },
     {
       name: "Franchises",
