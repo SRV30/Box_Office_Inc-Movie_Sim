@@ -36,5 +36,18 @@ describe("Franchise Ecosystem Unit Tests", () => {
     const updated = evaluateLoreConsistency(80, false);
     assert.equal(updated, 65);
   });
+
+  test("calculateUniverseSynergy clamps netMultiplier within [0.5, 2.5]", () => {
+    const hugeSynergy = calculateUniverseSynergy(15, 100, 0.01);
+    assert.ok(hugeSynergy.netMultiplier <= 2.5);
+    const lowSynergy = calculateUniverseSynergy(20, 10, 0.30);
+    assert.ok(lowSynergy.netMultiplier >= 0.5);
+  });
+
+  test("calculateCrossoverHype respects lore consistency weighting", () => {
+    const highLoreHype = calculateCrossoverHype(4, 100);
+    const lowLoreHype = calculateCrossoverHype(4, 50);
+    assert.ok(highLoreHype > lowLoreHype);
+  });
 });
 

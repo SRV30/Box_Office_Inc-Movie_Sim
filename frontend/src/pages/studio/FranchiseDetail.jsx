@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
+import UniverseManager from "../franchise/UniverseManager";
 import {
   Film,
   IndianRupee,
@@ -219,6 +220,8 @@ const FranchiseDetail = () => {
             )}
           </div>
         </div>
+
+        <UniverseManager franchiseId={id} />
 
         <div className="grid grid-cols-1 gap-6">
           <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6">
