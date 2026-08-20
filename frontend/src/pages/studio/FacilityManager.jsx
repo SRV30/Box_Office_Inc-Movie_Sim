@@ -1,9 +1,40 @@
-import React, { useState, useEffect } from "react";
-import api from "../../api/apiClient";
+import { useState, useEffect } from "react";
+import api from "../../api/axios";
+import DashboardLayout from "../../layouts/DashboardLayout";
+import { Building2, Plus, Sparkles, DollarSign, Layers, CheckCircle2, Shield } from "lucide-react";
+
+const AVAILABLE_FACILITY_TYPES = [
+  {
+    type: "SOUNDSTAGE_COMPLEX",
+    title: "Soundstage Complex",
+    description: "Multi-acre production stages for large-scale sets, rigging, and controlled filming.",
+    baseCost: 500000,
+  },
+  {
+    type: "VFX_VIRTUAL_PRODUCTION_LED",
+    title: "VFX & Virtual Production Stage",
+    description: "Next-gen LED Volume wall with real-time in-camera visual effects rendering.",
+    baseCost: 1200000,
+  },
+  {
+    type: "POST_PRODUCTION_SUITE",
+    title: "Post-Production Suite",
+    description: "High-end Dolby Atmos audio mixing, color-grading, and editorial suites.",
+    baseCost: 350000,
+  },
+  {
+    type: "BACKLOT_SET",
+    title: "Backlot Permanent Sets",
+    description: "Historical streets, sci-fi alleys, and outdoor architecture available on-demand.",
+    baseCost: 450000,
+  },
+];
 
 const FacilityManager = () => {
   const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionMessage, setActionMessage] = useState("");
+  const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
     fetchFacilities();
@@ -13,8 +44,8 @@ const FacilityManager = () => {
     try {
       setLoading(true);
       const res = await api.get("/facilities/list");
-      if (res.data.success) {
-        setFacilities(res.data.data);
+      if (res.data?.success) {
+        setFacilities(res.data.data || []);
       }
     } catch (err) {
       console.error("Failed to load facilities", err);
@@ -23,57 +54,155 @@ const FacilityManager = () => {
     }
   };
 
+  const handleBuildOrUpgrade = async (facilityType) => {
+    try {
+      setBusyId(facilityType);
+      const res = await api.post("/facilities/build", { facilityType });
+      if (res.data?.success) {
+        setActionMessage(res.data.message || `Facility ${facilityType} upgraded successfully.`);
+        await fetchFacilities();
+      }
+    } catch (err) {
+      setActionMessage(err.response?.data?.message || "Failed to commission facility.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const handleToggleRental = async (facilityId, isRented) => {
     try {
+      setBusyId(facilityId);
       const res = await api.post("/facilities/rental", {
         facilityId,
         isRentedToThirdParty: !isRented,
       });
-      if (res.data.success) {
-        fetchFacilities();
+      if (res.data?.success) {
+        setActionMessage(res.data.message || "Third-party rental status updated.");
+        await fetchFacilities();
       }
     } catch (err) {
-      console.error("Failed to toggle rental", err);
+      setActionMessage(err.response?.data?.message || "Failed to toggle rental status.");
+    } finally {
+      setBusyId(null);
     }
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold text-white mb-2">Studio Facilities & Infrastructure</h1>
-      <p className="text-gray-400 mb-6">Manage studio real estate, soundstages, LED virtual production stages, and third-party rentals.</p>
+    <DashboardLayout>
+      <div className="max-w-7xl mx-auto space-y-8 pb-20">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-white flex items-center gap-3">
+              <Building2 className="text-emerald-400" size={36} /> Studio Facilities & Real Estate
+            </h1>
+            <p className="text-slate-400 mt-2">
+              Commission soundstages, LED virtual production volumes, and lease facilities for weekly income.
+            </p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-sm font-semibold text-slate-300">
+            Constructed Assets: {facilities.length} / 4
+          </div>
+        </div>
 
-      {loading ? (
-        <div className="text-gray-400">Loading studio facility assets...</div>
-      ) : facilities.length === 0 ? (
-        <div className="bg-gray-800 p-8 rounded-xl text-center border border-gray-700">
-          <p className="text-gray-400">No physical facility assets constructed yet.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {facilities.map((f) => (
-            <div key={f._id} className="bg-gray-800 p-5 rounded-xl border border-gray-700">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-lg text-white">{f.facilityType.replace(/_/g, " ")}</h3>
-                <span className="text-xs bg-emerald-900 text-emerald-300 font-bold px-2.5 py-1 rounded">
-                  TIER {f.tierLevel}
-                </span>
+        {actionMessage && (
+          <div className="p-4 bg-emerald-950/60 border border-emerald-700/60 rounded-2xl text-emerald-200 text-sm flex items-center justify-between">
+            <span>{actionMessage}</span>
+            <button onClick={() => setActionMessage("")} className="text-emerald-400 hover:text-white font-bold text-xs ml-4">
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[40vh] text-slate-400 font-bold">
+            Loading studio facility assets...
+          </div>
+        ) : (
+          <div className="space-y-10">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                <Sparkles className="text-amber-400" size={22} /> Production Infrastructure Roster
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {AVAILABLE_FACILITY_TYPES.map((fType) => {
+                  const owned = facilities.find((f) => f.facilityType === fType.type);
+                  const isCommissioning = busyId === fType.type || busyId === owned?._id;
+
+                  return (
+                    <div
+                      key={fType.type}
+                      className="bg-[#111827] border border-slate-800 hover:border-slate-700 transition rounded-3xl p-6 space-y-5"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-xl font-bold text-white">{fType.title}</h3>
+                          <p className="text-slate-400 text-sm mt-1">{fType.description}</p>
+                        </div>
+                        {owned ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-700">
+                            <CheckCircle2 size={14} /> Tier {owned.tierLevel}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                            Unbuilt
+                          </span>
+                        )}
+                      </div>
+
+                      {owned ? (
+                        <div className="grid grid-cols-3 gap-3 bg-slate-900/70 p-4 rounded-2xl border border-slate-800">
+                          <div>
+                            <span className="text-[11px] text-slate-400 block font-semibold">Quality Boost</span>
+                            <span className="text-base font-black text-emerald-400">+{owned.qualityBoost} pts</span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-400 block font-semibold">Weekly Cost</span>
+                            <span className="text-base font-black text-rose-400">₹{(owned.maintenanceCostPerWeek / 1000).toFixed(0)}k</span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-400 block font-semibold">Rental Yield</span>
+                            <span className="text-base font-black text-amber-400">₹{(owned.rentalIncomePerWeek / 1000).toFixed(0)}k/wk</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 text-xs text-slate-400">
+                          Initial Construction Cost: <span className="text-white font-bold">₹{(fType.baseCost / 100000).toFixed(1)} Lakhs</span>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        <button
+                          disabled={isCommissioning || owned?.tierLevel >= 5}
+                          onClick={() => handleBuildOrUpgrade(fType.type)}
+                          className="flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-violet-600 hover:bg-violet-500 text-white transition disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                        >
+                          <Plus size={16} />
+                          {owned ? (owned.tierLevel >= 5 ? "Max Tier Reached" : `Upgrade Tier (T${owned.tierLevel + 1})`) : "Commission Build"}
+                        </button>
+
+                        {owned && (
+                          <button
+                            disabled={isCommissioning}
+                            onClick={() => handleToggleRental(owned._id, owned.isRentedToThirdParty)}
+                            className={`py-3 px-4 rounded-xl text-sm font-bold transition disabled:opacity-50 ${
+                              owned.isRentedToThirdParty
+                                ? "bg-amber-600/90 hover:bg-amber-500 text-white"
+                                : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                            }`}
+                          >
+                            {owned.isRentedToThirdParty ? "End Lease (In-House)" : "Lease Out (Yield Mode)"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="text-sm space-y-1 text-gray-300 mb-4">
-                <p>Quality Boost: <span className="text-green-400 font-semibold">+{f.qualityBoost} pts</span></p>
-                <p>Weekly Maintenance: <span className="text-red-400 font-semibold">${f.maintenanceCostPerWeek?.toLocaleString()}</span></p>
-                <p>Rental Yield: <span className="text-yellow-400 font-semibold">${f.rentalIncomePerWeek?.toLocaleString()}/wk</span></p>
-              </div>
-              <button
-                onClick={() => handleToggleRental(f._id, f.isRentedToThirdParty)}
-                className={`w-full py-2 rounded text-sm font-semibold transition ${f.isRentedToThirdParty ? "bg-amber-600 hover:bg-amber-500 text-white" : "bg-emerald-600 hover:bg-emerald-500 text-white"}`}
-              >
-                {f.isRentedToThirdParty ? "Stop Rental (Use In-House)" : "Lease Out to Third-Party"}
-              </button>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
   );
 };
 

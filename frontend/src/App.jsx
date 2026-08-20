@@ -56,7 +56,7 @@ import TrophyRoom from "./pages/awards/TrophyRoom";
 import AwardsSeasonDashboard from "./pages/awards/AwardsSeasonDashboard";
 import StudioUpgrades from "./pages/studio/StudioUpgrades";
 import UnionManager from "./pages/studio/UnionManager";
-import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
+import FacilityManager from "./pages/studio/FacilityManager";
 
 function App() {
   return (
@@ -390,10 +390,10 @@ function App() {
           }
         />
         <Route
-          path="/studio/crisis"
+          path="/studio/facilities"
           element={
             <ProtectedRoute>
-              <PRCrisisCenter />
+              <FacilityManager />
             </ProtectedRoute>
           }
         />
