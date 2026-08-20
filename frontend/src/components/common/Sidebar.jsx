@@ -17,6 +17,7 @@ import {
   Swords,
   Trophy,
   Heart,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Link, useLocation } from "react-router-dom";
