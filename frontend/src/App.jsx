@@ -56,6 +56,8 @@ import TrophyRoom from "./pages/awards/TrophyRoom";
 import AwardsSeasonDashboard from "./pages/awards/AwardsSeasonDashboard";
 import StudioUpgrades from "./pages/studio/StudioUpgrades";
 import UnionManager from "./pages/studio/UnionManager";
+import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
+import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 
 function App() {
@@ -386,6 +388,22 @@ function App() {
           element={
             <ProtectedRoute>
               <UnionManager />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/crisis"
+          element={
+            <ProtectedRoute>
+              <PRCrisisCenter />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/facilities"
+          element={
+            <ProtectedRoute>
+              <FacilityManager />
             </ProtectedRoute>
           }
         />

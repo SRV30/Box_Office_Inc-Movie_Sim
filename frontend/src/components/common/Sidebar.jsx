@@ -17,6 +17,7 @@ import {
   Swords,
   Trophy,
   Heart,
+  AlertTriangle,
   Tv,
 } from "lucide-react";
 
@@ -166,6 +167,16 @@ const Sidebar = ({ isOpen, onClose }) => {
       name: "Crew Union",
       path: "/studio/union",
       icon: Scale,
+    },
+    {
+      name: "PR Crisis Center",
+      path: "/studio/crisis",
+      icon: AlertTriangle,
+    },
+    {
+      name: "Studio Facilities",
+      path: "/studio/facilities",
+      icon: Building2,
     },
     {
       name: "TV Syndication",

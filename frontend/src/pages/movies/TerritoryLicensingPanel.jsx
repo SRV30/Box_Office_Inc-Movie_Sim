@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import api from "../../api/apiClient";
+import api from "../../api/axios";
 
 const TerritoryLicensingPanel = () => {
   const [deals, setDeals] = useState([]);
