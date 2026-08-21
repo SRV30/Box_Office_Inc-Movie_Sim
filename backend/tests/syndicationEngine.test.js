@@ -32,4 +32,32 @@ describe("Syndication Engine Unit Tests", () => {
     assert.strictEqual(result.updatedDeals[1].weeksRemaining, 0);
     assert.strictEqual(result.updatedDeals[1].status, "EXPIRED");
   });
+
+  it("calculateSyndicationValuation adjusts duration and minimum floors for lower-rated films", () => {
+    const lowRatedMovie = {
+      budget: 100000,
+      qualityScore: 35,
+    };
+    const valuation = calculateSyndicationValuation(lowRatedMovie);
+    assert.strictEqual(valuation.maxDurationWeeks, 12);
+    assert.ok(valuation.upfrontBonus >= 50000);
+    assert.ok(valuation.weeklyRoyalty >= 5000);
+
+    const midRatedMovie = {
+      budget: 5000000,
+      qualityScore: 65,
+    };
+    const midValuation = calculateSyndicationValuation(midRatedMovie);
+    assert.strictEqual(midValuation.maxDurationWeeks, 26);
+  });
+
+  it("handles null movie and empty active deals array gracefully", () => {
+    const nullValuation = calculateSyndicationValuation(null);
+    assert.strictEqual(nullValuation.upfrontBonus, 0);
+    assert.strictEqual(nullValuation.weeklyRoyalty, 0);
+
+    const emptyDeals = processWeeklySyndicationDeals([]);
+    assert.strictEqual(emptyDeals.totalPayout, 0);
+    assert.deepStrictEqual(emptyDeals.updatedDeals, []);
+  });
 });
