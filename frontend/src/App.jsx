@@ -58,6 +58,7 @@ import StudioUpgrades from "./pages/studio/StudioUpgrades";
 import UnionManager from "./pages/studio/UnionManager";
 import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
 import FacilityManager from "./pages/studio/FacilityManager";
+import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
 
 function App() {
@@ -404,6 +405,14 @@ function App() {
           element={
             <ProtectedRoute>
               <FacilityManager />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/syndication"
+          element={
+            <ProtectedRoute>
+              <SyndicationManager />
             </ProtectedRoute>
           }
         />
