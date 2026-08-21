@@ -59,6 +59,7 @@ import UnionManager from "./pages/studio/UnionManager";
 import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
 import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
+import FestivalCircuit from "./pages/studio/FestivalCircuit";
 
 function App() {
   return (
@@ -412,6 +413,14 @@ function App() {
           element={
             <ProtectedRoute>
               <SyndicationManager />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/festivals"
+          element={
+            <ProtectedRoute>
+              <FestivalCircuit />
             </ProtectedRoute>
           }
         />

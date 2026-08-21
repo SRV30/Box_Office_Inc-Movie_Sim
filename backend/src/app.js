@@ -55,6 +55,7 @@ import crisisRoutes from "./routes/crisisRoutes.js";
 import merchandiseRoutes from "./routes/merchandiseRoutes.js";
 import awardsRoutes from "./routes/awardsRoutes.js";
 import syndicationRoutes from "./routes/syndicationRoutes.js";
+import festivalRoutes from "./routes/festivalRoutes.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -154,6 +155,7 @@ app.use("/api/crisis", apiRateLimiter, crisisRoutes);
 app.use("/api/cinematic-universes", apiRateLimiter, cinematicUniverseRoutes);
 app.use("/api/facilities", apiRateLimiter, facilityRoutes);
 app.use("/api/syndication", apiRateLimiter, syndicationRoutes);
+app.use("/api/festivals", apiRateLimiter, festivalRoutes);
 // app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
 
 app.use((req, res) => {
