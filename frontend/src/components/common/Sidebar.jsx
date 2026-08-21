@@ -168,6 +168,16 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Scale,
     },
     {
+      name: "PR Crisis Center",
+      path: "/studio/crisis",
+      icon: AlertTriangle,
+    },
+    {
+      name: "Studio Facilities",
+      path: "/studio/facilities",
+      icon: Building2,
+    },
+    {
       name: "Film Festivals",
       path: "/studio/festivals",
       icon: Trophy,

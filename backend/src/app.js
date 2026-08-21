@@ -152,8 +152,8 @@ app.use("/api/bond-market", apiRateLimiter, bondMarketRoutes);
 app.use("/api/streaming-auctions", apiRateLimiter, streamingAuctionRoutes);
 app.use("/api/crisis", apiRateLimiter, crisisRoutes);
 app.use("/api/cinematic-universes", apiRateLimiter, cinematicUniverseRoutes);
+app.use("/api/facilities", apiRateLimiter, facilityRoutes);
 app.use("/api/festivals", apiRateLimiter, festivalRoutes);
-// app.use("/api/facilities", apiRateLimiter, facilityRoutes);
 // app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
 
 app.use((req, res) => {
