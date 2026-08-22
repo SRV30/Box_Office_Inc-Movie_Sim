@@ -22,12 +22,27 @@ export const getNotifications = async (req, res) => {
       return sendGameStateNotFound(res);
     }
 
-    const notifications = await Notification.find({ gameStateId: gameState._id }).sort({ createdAt: -1 });
-    const unreadCount = await Notification.countDocuments({ gameStateId: gameState._id, read: false });
+    const page = req.query.page ? Math.max(1, parseInt(req.query.page, 10) || 1) : null;
+    const limit = req.query.limit ? Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20)) : null;
+
+    let query = Notification.find({ gameStateId: gameState._id }).sort({ createdAt: -1 });
+    if (page && limit) {
+      query = query.skip((page - 1) * limit).limit(limit);
+    } else if (limit) {
+      query = query.limit(limit);
+    }
+
+    const [notifications, unreadCount, total] = await Promise.all([
+      query.lean(),
+      Notification.countDocuments({ gameStateId: gameState._id, read: false }),
+      Notification.countDocuments({ gameStateId: gameState._id }),
+    ]);
 
     res.json({
       notifications,
       unreadCount,
+      total,
+      ...(page && limit ? { pagination: { page, limit, total, pages: Math.ceil(total / limit) || 1 } } : {}),
     });
   } catch (error) {
     console.error("Error in getNotifications:", error);

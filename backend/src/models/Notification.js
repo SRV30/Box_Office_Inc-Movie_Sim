@@ -21,8 +21,12 @@ const notificationSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+    index: true,
   },
 });
+
+notificationSchema.index({ gameStateId: 1, createdAt: -1 });
+notificationSchema.index({ gameStateId: 1, read: 1 });
 
 const Notification = mongoose.model("Notification", notificationSchema);
 

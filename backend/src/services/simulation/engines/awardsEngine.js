@@ -1,6 +1,7 @@
 import Movie from "../../../models/Movie.js";
 import Studio from "../../../models/Studio.js";
 import Notification from "../../../models/Notification.js";
+import PastAward from "../../../models/PastAward.js";
 
 // Awards run annually at Week 52.
 export const processAnnualAwards = async (gameState, studio) => {
@@ -32,6 +33,8 @@ export const processAnnualAwards = async (gameState, studio) => {
     const year = Math.floor(gameState.currentWeek / 52);
 
     const awardRecord = {
+        gameStateId: gameState._id,
+        studioId: studio?._id,
         year,
         bestPictureId: bestPicture._id.toString(),
         bestPictureTitle: bestPicture.title,
@@ -41,8 +44,11 @@ export const processAnnualAwards = async (gameState, studio) => {
         bestActorName: bestActorMovie.leadActorName || "Unknown Actor",
     };
 
-    gameState.pastAwards = gameState.pastAwards || [];
-    gameState.pastAwards.push(awardRecord);
+    try {
+        await PastAward.create(awardRecord);
+    } catch (awardErr) {
+        console.error("Failed to persist PastAward:", awardErr.message);
+    }
 
     // Notify the user if their studio won
     if (studio) {

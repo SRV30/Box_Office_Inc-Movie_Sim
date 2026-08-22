@@ -11,6 +11,7 @@ import StudioUpgrade from "../models/StudioUpgrade.js";
 import MarketDirector from "../models/MarketDirector.js";
 import MarketActor from "../models/MarketActor.js";
 import MarketCrewTeam from "../models/MarketCrewTeam.js";
+import PastAward from "../models/PastAward.js";
 import { generateDirectors } from "../services/director/directorGenerator.js";
 import { generateActors } from "../services/actor/actorGenerator.js";
 import { generateCrewTeams } from "../services/crew/crewGenerator.js";
@@ -156,9 +157,28 @@ export const getPastAwards = async (req, res) => {
       return res.status(404).json({ message: "Game state not found" });
     }
 
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const [awards, total] = await Promise.all([
+      PastAward.find({ gameStateId: gameState._id })
+        .sort({ year: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      PastAward.countDocuments({ gameStateId: gameState._id }),
+    ]);
+
     res.status(200).json({
       success: true,
-      awards: gameState.pastAwards || []
+      awards,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit) || 1,
+      },
     });
   } catch (error) {
     logger.error("Error fetching awards", { error: error.message });
@@ -210,6 +230,9 @@ export const resetGame = async (req, res) => {
 
       // Delete all talent history for this gameState
       await TalentHistory.deleteMany({ gameStateId: gameState._id }, { session });
+
+      // Delete all past awards for this gameState
+      await PastAward.deleteMany({ gameStateId: gameState._id }, { session });
 
       // Delete news items for this studio
       await NewsItem.deleteMany({ studioId: studio._id }, { session });
