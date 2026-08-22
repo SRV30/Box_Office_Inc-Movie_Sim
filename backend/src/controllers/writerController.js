@@ -3,7 +3,7 @@ import Studio from "../models/Studio.js";
 import { generateWriters } from "../services/writer/writerGenerator.js";
 import { buildWriterProfile } from "../services/writer/writerProfileService.js";
 import { presentWriters } from "../services/writer/writerPresenter.js";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { getMarketplaceTalent, resolveTalent, invalidateUserCache } from "../utils/marketplaceHelper.js";
 import Notification from "../models/Notification.js";
 import { calculateSigningFee } from "../services/talent/signingFeeService.js";

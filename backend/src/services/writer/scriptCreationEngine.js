@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 import { generateTitle } from "../script/titleGenerator.js";
 import { calculatePrice } from "../script/priceCalculator.js";

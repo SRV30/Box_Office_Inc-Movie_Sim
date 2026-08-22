@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 import { generateTitle } from "./titleGenerator.js";
 import { generateGenres } from "./genreGenerator.js";

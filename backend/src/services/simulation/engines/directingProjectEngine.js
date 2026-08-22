@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { calculateProjectedMovieQuality } from "../../director/directingProjectService.js";
 import { addNotification } from "../helpers/notificationHelper.js";
 import { addTalentHistory } from "../helpers/historyHelper.js";
