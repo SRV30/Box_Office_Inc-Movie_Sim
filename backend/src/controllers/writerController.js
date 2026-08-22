@@ -8,6 +8,7 @@ import { getMarketplaceTalent, resolveTalent, invalidateUserCache } from "../uti
 import Notification from "../models/Notification.js";
 import { calculateSigningFee } from "../services/talent/signingFeeService.js";
 import TalentHistory from "../models/TalentHistory.js";
+import { withTransaction } from "../utils/financeTransactionHelper.js";
 
 export const getMarketWriters = async (req, res) => {
   const gameState = await GameState.findOne({
@@ -93,169 +94,180 @@ export const getWriterProfile = async (req, res) => {
 };
 
 export const hireWriter = async (req, res) => {
-  const { index } = req.params;
+  try {
+    const { index } = req.params;
+    let signingFee;
+    let remainingMoney;
 
-  const gameState = await GameState.findOne({
-    user: req.user._id,
-  });
+    await withTransaction(async (session) => {
+      const gameState = await GameState.findOne({ user: req.user._id }).session(session);
+      if (!gameState) {
+        const error = new Error("Game state not found");
+        error.statusCode = 404;
+        throw error;
+      }
 
-  if (!gameState) {
-    return res.status(404).json({
-      message: "Game state not found",
+      const { item: writer, index: realIndex } = resolveTalent(
+        gameState.marketWriters || [],
+        index
+      );
+
+      if (!writer) {
+        const error = new Error("Writer not found");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const studio = await Studio.findOne({ owner: req.user._id }).session(session);
+      if (!studio) {
+        const error = new Error("Studio not found");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      signingFee = calculateSigningFee(writer);
+
+      if (Number(studio.money || 0) < signingFee) {
+        const error = new Error(`Insufficient funds: hiring ${writer.name} requires a signing fee of ${signingFee}, but the studio has ${studio.money}.`);
+        error.statusCode = 400;
+        throw error;
+      }
+
+      writer.hiredAt = new Date();
+      gameState.ownedWriters.push(writer);
+      gameState.marketWriters.splice(realIndex, 1);
+
+      studio.money = Math.max(0, Number(studio.money || 0) - signingFee);
+      remainingMoney = studio.money;
+
+      await studio.save({ session });
+      await gameState.save({ session });
     });
-  }
 
-  const { item: writer, index: realIndex } = resolveTalent(
-    gameState.marketWriters || [],
-    index
-  );
-
-  if (!writer) {
-    return res.status(404).json({
-      message: "Writer not found",
-    });
-  }
-
-  const studio = await Studio.findOne({ owner: req.user._id });
-
-  if (!studio) {
-    return res.status(404).json({
-      message: "Studio not found",
-    });
-  }
-
-  const signingFee = calculateSigningFee(writer);
-
-  if (Number(studio.money || 0) < signingFee) {
-    return res.status(400).json({
-      message: `Insufficient funds: hiring ${writer.name} requires a signing fee of ${signingFee}, but the studio has ${studio.money}.`,
+    res.status(200).json({
+      message: "Writer hired successfully",
       signingFee,
-      studioMoney: studio.money,
+      remainingMoney,
     });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: error.message });
   }
-
-  writer.hiredAt = new Date();
-
-  gameState.ownedWriters.push(writer);
-
-  gameState.marketWriters.splice(realIndex, 1);
-
-  studio.money = Math.max(0, Number(studio.money || 0) - signingFee);
-  await studio.save();
-
-  await gameState.save();
-
-  res.status(200).json({
-    message: "Writer hired successfully",
-    signingFee,
-    remainingMoney: studio.money,
-  });
 };
 
 export const fireWriter = async (req, res) => {
-  const { index } = req.params;
+  try {
+    const { index } = req.params;
+    let penalty = 50000;
+    let fanLoss = 0;
+    let remainingMoney;
+    let remainingFans;
 
-  const gameState = await GameState.findOne({
-    user: req.user._id,
-  });
+    await withTransaction(async (session) => {
+      const gameState = await GameState.findOne({ user: req.user._id }).session(session);
+      const studio = await Studio.findOne({ owner: req.user._id }).session(session);
 
-  const studio = await Studio.findOne({
-    owner: req.user._id,
-  });
+      if (!gameState) {
+        const error = new Error("Game state not found");
+        error.statusCode = 404;
+        throw error;
+      }
 
-  if (!gameState) {
-    return res.status(404).json({
-      message: "Game state not found",
+      if (!studio) {
+        const error = new Error("Studio not found");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const { item: writer, index: realIndex } = resolveTalent(
+        gameState.ownedWriters || [],
+        index
+      );
+
+      if (!writer) {
+        const error = new Error("Writer not found");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const activeProject = gameState.activeWritingProjects.find(
+        (project) => project.writerId === writer.id
+      );
+
+      if (activeProject) {
+        const totalDuration = activeProject.completionWeek - activeProject.startWeek;
+        const elapsedWeeks = gameState.currentWeek - activeProject.startWeek;
+        const progress = Math.min(100, Math.floor((elapsedWeeks / totalDuration) * 100));
+
+        if (progress >= 75) {
+          penalty = 100000;
+          fanLoss = 100;
+        } else if (progress >= 50) {
+          penalty = 90000;
+          fanLoss = 50;
+        } else if (progress >= 25) {
+          penalty = 75000;
+          fanLoss = 25;
+        } else {
+          penalty = 60000;
+          fanLoss = 10;
+        }
+
+        gameState.activeWritingProjects = gameState.activeWritingProjects.filter(
+          (project) => project.writerId !== writer.id
+        );
+
+        await Notification.create(
+          [
+            {
+              gameStateId: gameState._id,
+              message: `${writer.name} was fired while writing a script. Project cancelled.`,
+            },
+          ],
+          { session }
+        );
+      }
+
+      studio.money = Math.max(0, studio.money - penalty);
+      studio.fans = Math.max(0, studio.fans - fanLoss);
+      remainingMoney = studio.money;
+      remainingFans = studio.fans;
+
+      writer.status = "AVAILABLE";
+      writer.busyUntilWeek = null;
+
+      gameState.marketWriters.push(writer);
+      gameState.ownedWriters.splice(realIndex, 1);
+
+      await Notification.create(
+        [
+          {
+            gameStateId: gameState._id,
+            message: `${writer.name} was fired. Penalty ₹${penalty.toLocaleString()} and ${fanLoss} fans lost.`,
+          },
+        ],
+        { session }
+      );
+
+      await studio.save({ session });
+      await gameState.save({ session });
     });
-  }
 
-  if (!studio) {
-    return res.status(404).json({
-      message: "Studio not found",
+    res.status(200).json({
+      message: "Writer fired successfully",
+      penalty,
+      fanLoss,
+      remainingMoney,
+      remainingFans,
     });
-  }
-
-  const { item: writer, index: realIndex } = resolveTalent(
-    gameState.ownedWriters || [],
-    index
-  );
-
-  if (!writer) {
-    return res.status(404).json({
-      message: "Writer not found",
-    });
-  }
-
-  const activeProject = gameState.activeWritingProjects.find(
-    (project) => project.writerId === writer.id
-  );
-
-  let penalty = 50000;
-  let fanLoss = 0;
-
-  if (activeProject) {
-    const totalDuration =
-      activeProject.completionWeek - activeProject.startWeek;
-
-    const elapsedWeeks = gameState.currentWeek - activeProject.startWeek;
-
-    const progress = Math.min(
-      100,
-      Math.floor((elapsedWeeks / totalDuration) * 100)
-    );
-
-    if (progress >= 75) {
-      penalty = 100000;
-      fanLoss = 100;
-    } else if (progress >= 50) {
-      penalty = 90000;
-      fanLoss = 50;
-    } else if (progress >= 25) {
-      penalty = 75000;
-      fanLoss = 25;
-    } else {
-      penalty = 60000;
-      fanLoss = 10;
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
     }
-
-    gameState.activeWritingProjects = gameState.activeWritingProjects.filter(
-      (project) => project.writerId !== writer.id
-    );
-
-    await Notification.create({
-      gameStateId: gameState._id,
-      message: `${writer.name} was fired while writing a script. Project cancelled.`,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
-
-  studio.money = Math.max(0, studio.money - penalty);
-
-  studio.fans = Math.max(0, studio.fans - fanLoss);
-
-  writer.status = "AVAILABLE";
-  writer.busyUntilWeek = null;
-
-  gameState.marketWriters.push(writer);
-
-  gameState.ownedWriters.splice(realIndex, 1);
-
-  await Notification.create({
-    gameStateId: gameState._id,
-    message: `${
-      writer.name
-    } was fired. Penalty ₹${penalty.toLocaleString()} and ${fanLoss} fans lost.`,
-  });
-
-  await studio.save();
-  await gameState.save();
-
-  res.status(200).json({
-    message: "Writer fired successfully",
-    penalty,
-    fanLoss,
-    remainingMoney: studio.money,
-    remainingFans: studio.fans,
-  });
 };
 
 export const startWritingProject = async (req, res) => {

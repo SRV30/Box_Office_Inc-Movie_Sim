@@ -1,6 +1,7 @@
 import GameState from "../models/GameState.js";
 import Notification from "../models/Notification.js";
 import Studio from "../models/Studio.js";
+import { withTransaction } from "../utils/financeTransactionHelper.js";
 
 const findGameState = async (userId) => GameState.findOne({ user: userId });
 
@@ -250,49 +251,56 @@ export const getPendingContracts = async (req, res) => {
   }
 };
 
-/**
- * Buyout and terminate active contract.
- * POST /api/contracts/buyout
- */
 export const buyoutContract = async (req, res) => {
   try {
     const { contractId } = req.body;
-    const gameState = await findGameState(req.user._id);
+    let penalty;
+    let updatedMoney;
 
-    if (!gameState) {
-      return res.status(404).json({ success: false, message: "Game state not found" });
-    }
+    await withTransaction(async (session) => {
+      const gameState = await GameState.findOne({ user: req.user._id }).session(session);
+      if (!gameState) {
+        const error = new Error("Game state not found");
+        error.statusCode = 404;
+        throw error;
+      }
 
-    const contractIndex = (gameState.pendingContracts || []).findIndex((c) => c._id.toString() === contractId || c.contractId === contractId);
-    if (contractIndex === -1) {
-      return res.status(404).json({ success: false, message: "Contract not found" });
-    }
+      const contractIndex = (gameState.pendingContracts || []).findIndex(
+        (c) => c._id.toString() === contractId || c.contractId === contractId
+      );
+      if (contractIndex === -1) {
+        const error = new Error("Contract not found");
+        error.statusCode = 404;
+        throw error;
+      }
 
-    const contract = gameState.pendingContracts[contractIndex];
-    const penalty = Math.round((contract.offer?.baseSalary || 100000) * 1.5);
+      const contract = gameState.pendingContracts[contractIndex];
+      penalty = Math.round((contract.offer?.baseSalary || 100000) * 1.5);
 
-    // Studio money lives on the Studio document, not on GameState. Charge it
-    // atomically so the penalty is actually deducted (and can't go negative
-    // under concurrent requests). Previously this read/wrote gameState.money,
-    // which is undefined, so the funds check never fired and buyouts were free.
-    const updatedStudio = await Studio.findOneAndUpdate(
-      { owner: req.user._id, money: { $gte: penalty } },
-      { $inc: { money: -penalty } },
-      { returnDocument: "after" }
-    );
-    if (!updatedStudio) {
-      return res.status(400).json({ success: false, message: "Insufficient funds for buyout penalty" });
-    }
+      const studio = await Studio.findOne({ owner: req.user._id }).session(session);
+      if (!studio || studio.money < penalty) {
+        const error = new Error("Insufficient funds for buyout penalty");
+        error.statusCode = 400;
+        throw error;
+      }
 
-    gameState.pendingContracts[contractIndex].status = "TERMINATED";
-    await gameState.save();
+      studio.money -= penalty;
+      await studio.save({ session });
+      updatedMoney = studio.money;
+
+      gameState.pendingContracts[contractIndex].status = "TERMINATED";
+      await gameState.save({ session });
+    });
 
     return res.status(200).json({
       success: true,
       message: "Contract terminated successfully",
-      data: { penaltyPaid: penalty, money: updatedStudio.money },
+      data: { penaltyPaid: penalty, money: updatedMoney },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
     console.error("Error buying out contract:", error);
     res.status(500).json({ success: false, message: "Failed to buyout contract" });
   }
