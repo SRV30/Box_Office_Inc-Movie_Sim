@@ -196,8 +196,9 @@ test("payrollEngine: full coverage deducts total payroll and credits earnings", 
   };
   const studio = { money: 100_000 };
 
-  processWriterPayroll(gameState, studio);
+  const paid = processWriterPayroll(gameState, studio);
 
+  assert.strictEqual(paid, 2000);
   assert.strictEqual(studio.money, 98_000); // 100000 - 2000
   assert.strictEqual(gameState.ownedActors[0].totalEarnings, 1000);
   assert.strictEqual(gameState.ownedActors[1].totalEarnings, 1000);

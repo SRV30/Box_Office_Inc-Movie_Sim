@@ -99,4 +99,5 @@ export const processWriterPayroll = (gameState, studio) => {
   });
 
   studio.money = Math.max(0, availableMoney - totalActuallyPaid);
+  return totalActuallyPaid;
 };

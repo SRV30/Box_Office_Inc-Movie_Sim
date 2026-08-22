@@ -90,7 +90,7 @@ export const processWeeklyTick = async (gameState, studio) => {
     }
   }
 
-  processWriterPayroll(gameState, studio);
+  const payrollPaid = processWriterPayroll(gameState, studio) || 0;
 
   // Process weekly fan club updates (issue #284)
   processFanClubTick(gameState, studio);
@@ -235,7 +235,21 @@ export const processWeeklyTick = async (gameState, studio) => {
   //     reputation decay (issue #281).
   processScandals(gameState, studio);
 
-  return { gameState, rivalReleases };
+  const weeklyPayroll = payrollPaid || 0;
+  const weeklyMovieCosts = studio._weeklyMovieCosts || 0;
+  const weeklyMarketingCosts = studio._weeklyMarketingCosts || 0;
+  delete studio._weeklyMovieCosts;
+  delete studio._weeklyMarketingCosts;
+
+  return {
+    gameState,
+    rivalReleases,
+    financialSummary: {
+      payroll: weeklyPayroll,
+      movieCosts: weeklyMovieCosts,
+      marketingCosts: weeklyMarketingCosts,
+    },
+  };
 };
 
 
