@@ -70,12 +70,24 @@ export const boostMerchandiseLevel = async (req, res) => {
     let studio;
 
     await withTransaction(async (session) => {
-      studio = await Studio.findOne({ owner: req.user._id }).session(session);
-      if (!studio) {
-        const error = new Error("Studio not found");
-        error.statusCode = 404;
+      const updatedStudio = await Studio.findOneAndUpdate(
+        { owner: req.user._id, money: { $gte: MERCH_BOOST_COST } },
+        { $inc: { money: -MERCH_BOOST_COST } },
+        { returnDocument: "after", session }
+      );
+
+      if (!updatedStudio) {
+        const checkStudio = await Studio.findOne({ owner: req.user._id }).session(session);
+        if (!checkStudio) {
+          const error = new Error("Studio not found");
+          error.statusCode = 404;
+          throw error;
+        }
+        const error = new Error("Insufficient funds to upgrade merchandising campaign");
+        error.statusCode = 400;
         throw error;
       }
+      studio = updatedStudio;
 
       movie = await Movie.findOne({ _id: movieId, studioId: studio._id }).session(session);
       if (!movie) {
@@ -84,18 +96,8 @@ export const boostMerchandiseLevel = async (req, res) => {
         throw error;
       }
 
-      const cost = 2500000; // 2.5 million rupees
-      if (studio.money < cost) {
-        const error = new Error("Insufficient funds to upgrade merchandising campaign");
-        error.statusCode = 400;
-        throw error;
-      }
-
       movie.merchandiseLevel = (movie.merchandiseLevel || 0) + 1;
-      studio.money -= MERCH_BOOST_COST;
-
       await movie.save({ session });
-      await studio.save({ session });
     });
 
     res.status(200).json({

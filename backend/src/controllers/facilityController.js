@@ -35,14 +35,17 @@ export const buildFacility = async (req, res, next) => {
       const currentTier = existing ? existing.tierLevel : 0;
       const upgradeDetails = calculateFacilityUpgrade(facilityType, currentTier || 1);
 
-      if (studio.money < upgradeDetails.cost) {
+      const updatedStudio = await Studio.findOneAndUpdate(
+        { _id: studioId, money: { $gte: upgradeDetails.cost } },
+        { $inc: { money: -upgradeDetails.cost } },
+        { returnDocument: "after", session }
+      );
+
+      if (!updatedStudio) {
         const error = new Error("Insufficient studio funds to build facility");
         error.statusCode = 400;
         throw error;
       }
-
-      studio.money -= upgradeDetails.cost;
-      await studio.save({ session });
 
       if (existing) {
         existing.tierLevel = upgradeDetails.nextTier;

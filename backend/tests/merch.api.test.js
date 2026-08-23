@@ -3,14 +3,14 @@ import "./helpers/testEnv.js";
 import test, { before, after } from "node:test";
 import assert from "node:assert";
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 
 let mongod;
 let server;
 let baseUrl;
 
 before(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   const uri = mongod.getUri();
   await mongoose.connect(uri);
 

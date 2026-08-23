@@ -277,16 +277,25 @@ export const buyoutContract = async (req, res) => {
       const contract = gameState.pendingContracts[contractIndex];
       penalty = Math.round((contract.offer?.baseSalary || 100000) * 1.5);
 
-      const studio = await Studio.findOne({ owner: req.user._id }).session(session);
-      if (!studio || studio.money < penalty) {
+      const updatedStudio = await Studio.findOneAndUpdate(
+        { owner: req.user._id, money: { $gte: penalty } },
+        { $inc: { money: -penalty } },
+        { returnDocument: "after", session }
+      );
+
+      if (!updatedStudio) {
+        const checkStudio = await Studio.findOne({ owner: req.user._id }).session(session);
+        if (!checkStudio) {
+          const error = new Error("Studio not found");
+          error.statusCode = 404;
+          throw error;
+        }
         const error = new Error("Insufficient funds for buyout penalty");
         error.statusCode = 400;
         throw error;
       }
 
-      studio.money -= penalty;
-      await studio.save({ session });
-      updatedMoney = studio.money;
+      updatedMoney = updatedStudio.money;
 
       gameState.pendingContracts[contractIndex].status = "TERMINATED";
       await gameState.save({ session });
