@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 const DIRECTING_PROJECT_MIN_WEEKS = 4;
 const DIRECTING_PROJECT_MAX_WEEKS = 8;

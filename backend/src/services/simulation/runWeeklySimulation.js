@@ -36,6 +36,9 @@ export const runWeeklySimulation = async (gameState, studio) => {
 
   const result = await processWeeklyTick(gameState, studio);
 
-  // processWeeklyTick returns { gameState, rivalReleases }
-  return result.rivalReleases || [];
+  // processWeeklyTick returns { gameState, rivalReleases, financialSummary }
+  return {
+    rivalReleases: result.rivalReleases || [],
+    financialSummary: result.financialSummary || { payroll: 0, movieCosts: 0, marketingCosts: 0 },
+  };
 };
