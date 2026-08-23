@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+export const objectIdString = z
+  .string()
+  .regex(/^[0-9a-fA-F]{24}$/, "Must be a valid 24-character hexadecimal ObjectId");
+
 export const updateFanClubBudgetSchema = {
   body: z.object({
     weeklyBudget: z.number().min(0, "Weekly budget must be a non-negative number"),
@@ -20,8 +24,8 @@ export const createCinematicUniverseSchema = {
 
 export const addMovieToUniverseSchema = {
   body: z.object({
-    universeId: z.string().min(1, "Universe ID is required"),
-    movieId: z.string().min(1, "Movie ID is required"),
+    universeId: objectIdString,
+    movieId: objectIdString,
   }),
 };
 
@@ -39,7 +43,7 @@ export const simulateWeekSchema = {
 
 export const createSpinoffSchema = {
   params: z.object({
-    id: z.string().min(1, "Franchise ID is required"),
+    id: objectIdString,
   }),
   body: z.object({
     name: z.string().min(1, "Spin-off name is required"),
@@ -50,8 +54,8 @@ export const createSpinoffSchema = {
 
 export const createCrossoverSchema = {
   body: z.object({
-    franchiseId1: z.string().min(1, "First franchise ID is required"),
-    franchiseId2: z.string().min(1, "Second franchise ID is required"),
+    franchiseId1: objectIdString,
+    franchiseId2: objectIdString,
     crossoverName: z.string().min(1, "Crossover name is required"),
   }).passthrough(),
 };
@@ -65,14 +69,14 @@ export const issueBondSchema = {
 
 export const startAwardsCampaignSchema = {
   body: z.object({
-    movieId: z.string().min(1, "Movie ID is required"),
+    movieId: objectIdString,
     campaignTier: z.string().min(1, "Campaign tier is required"),
   }).passthrough(),
 };
 
 export const testScreeningSchema = {
   params: z.object({
-    id: z.string().min(1, "Movie ID is required"),
+    id: objectIdString,
   }),
   body: z.object({
     focusGroupSize: z.number().int().positive().optional(),
@@ -81,7 +85,7 @@ export const testScreeningSchema = {
 
 export const orderReshootsSchema = {
   params: z.object({
-    id: z.string().min(1, "Movie ID is required"),
+    id: objectIdString,
   }),
   body: z.object({
     reshootBudget: z.number().positive().optional(),
@@ -90,14 +94,14 @@ export const orderReshootsSchema = {
 
 export const createAuctionSchema = {
   body: z.object({
-    movieId: z.string().min(1, "Movie ID is required"),
+    movieId: objectIdString,
     reservePrice: z.number().positive().optional(),
   }).passthrough(),
 };
 
 export const executeAuctionBidSchema = {
   params: z.object({
-    auctionId: z.string().min(1, "Auction ID is required"),
+    auctionId: objectIdString,
   }),
   body: z.object({
     platformId: z.string().optional(),
@@ -105,15 +109,24 @@ export const executeAuctionBidSchema = {
   }).passthrough(),
 };
 
+export const merchandiseValuationSchema = {
+  body: z.object({
+    movieId: objectIdString,
+    category: z.string().optional(),
+    tier: z.string().optional(),
+  }).passthrough(),
+};
+
 export const merchandiseDealSchema = {
   body: z.object({
-    movieId: z.string().min(1, "Movie ID is required"),
-    dealType: z.string().optional(),
+    movieId: objectIdString,
+    category: z.string().min(1, "Category is required"),
+    tier: z.string().optional(),
   }).passthrough(),
 };
 
 export const notificationIdParamSchema = {
   params: z.object({
-    id: z.string().min(1, "Notification ID is required"),
+    id: objectIdString,
   }),
 };
