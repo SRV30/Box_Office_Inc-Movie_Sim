@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 import { generateDirectorAge } from "./ageGenerator.js";
 import { generateDirectorName } from "./nameGenerator.js";

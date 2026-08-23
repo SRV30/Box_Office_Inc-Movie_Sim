@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 import GameState from "../models/GameState.js";
 import Studio from "../models/Studio.js";

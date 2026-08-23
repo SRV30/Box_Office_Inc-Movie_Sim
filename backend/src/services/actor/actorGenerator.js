@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 import { generateActorAge, generateActorAgeForBucket } from "./ageGenerator.js";
 import { generateActorName } from "./nameGenerator.js";
