@@ -11,6 +11,7 @@ import StudioUpgrade from "../models/StudioUpgrade.js";
 import MarketDirector from "../models/MarketDirector.js";
 import MarketActor from "../models/MarketActor.js";
 import MarketCrewTeam from "../models/MarketCrewTeam.js";
+import PastAward from "../models/PastAward.js";
 import { generateDirectors } from "../services/director/directorGenerator.js";
 import { generateActors } from "../services/actor/actorGenerator.js";
 import { generateCrewTeams } from "../services/crew/crewGenerator.js";
@@ -158,9 +159,50 @@ export const getPastAwards = async (req, res) => {
       return res.status(404).json({ message: "Game state not found" });
     }
 
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const [dbAwards, totalDbAwards] = await Promise.all([
+      PastAward.find({ gameStateId: gameState._id })
+        .sort({ year: -1 })
+        .lean(),
+      PastAward.countDocuments({ gameStateId: gameState._id }),
+    ]);
+
+    // Backward compatibility: If gameState contains legacy embedded pastAwards, merge them deduplicating by year
+    const legacyAwards = Array.isArray(gameState.pastAwards) ? gameState.pastAwards : [];
+    const awardsMap = new Map();
+
+    for (const la of legacyAwards) {
+      if (la && typeof la.year === "number") {
+        awardsMap.set(la.year, {
+          ...la,
+          _id: la._id || `legacy-${la.year}`,
+          gameStateId: gameState._id,
+        });
+      }
+    }
+
+    for (const da of dbAwards) {
+      if (da && typeof da.year === "number") {
+        awardsMap.set(da.year, da);
+      }
+    }
+
+    const allAwards = Array.from(awardsMap.values()).sort((a, b) => b.year - a.year);
+    const total = allAwards.length;
+    const paginatedAwards = allAwards.slice(skip, skip + limit);
+
     res.status(200).json({
       success: true,
-      awards: gameState.pastAwards || []
+      awards: paginatedAwards,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit) || 1,
+      },
     });
   } catch (error) {
     logger.error("Error fetching awards", { error: error.message });
@@ -212,6 +254,9 @@ export const resetGame = async (req, res) => {
 
       // Delete all talent history for this gameState
       await TalentHistory.deleteMany({ gameStateId: gameState._id }, { session });
+
+      // Delete all past awards for this gameState
+      await PastAward.deleteMany({ gameStateId: gameState._id }, { session });
 
       // Delete news items for this studio
       await NewsItem.deleteMany({ studioId: studio._id }, { session });
