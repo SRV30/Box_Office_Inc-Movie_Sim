@@ -1,6 +1,7 @@
 import StudioFacility from "../models/StudioFacility.js";
 import Studio from "../models/Studio.js";
 import { calculateFacilityUpgrade } from "../services/simulation/engines/facilityEngine.js";
+import { withTransaction } from "../utils/financeTransactionHelper.js";
 
 export const getStudioFacilities = async (req, res, next) => {
   try {
@@ -19,40 +20,56 @@ export const getStudioFacilities = async (req, res, next) => {
 export const buildFacility = async (req, res, next) => {
   try {
     const { facilityType } = req.body;
-    const studio = await Studio.findOne({ owner: req.user._id });
-    const studioId = studio ? studio._id : req.user.studioId;
-    if (!studio) {
-      return res.status(404).json({ success: false, message: "Studio not found" });
-    }
-
-    const existing = await StudioFacility.findOne({ studioId, facilityType });
-    const currentTier = existing ? existing.tierLevel : 0;
-    const upgradeDetails = calculateFacilityUpgrade(facilityType, currentTier || 1);
-
-    if (studio.money < upgradeDetails.cost) {
-      return res.status(400).json({ success: false, message: "Insufficient studio funds to build facility" });
-    }
-
-    studio.money -= upgradeDetails.cost;
-    await studio.save();
-
     let facility;
-    if (existing) {
-      existing.tierLevel = upgradeDetails.nextTier;
-      existing.qualityBoost = upgradeDetails.qualityBoost;
-      existing.maintenanceCostPerWeek = upgradeDetails.maintenanceCostPerWeek;
-      existing.rentalIncomePerWeek = upgradeDetails.rentalIncomePerWeek;
-      facility = await existing.save();
-    } else {
-      facility = await StudioFacility.create({
-        studioId,
-        facilityType,
-        tierLevel: 1,
-        qualityBoost: upgradeDetails.qualityBoost,
-        maintenanceCostPerWeek: upgradeDetails.maintenanceCostPerWeek,
-        rentalIncomePerWeek: upgradeDetails.rentalIncomePerWeek,
-      });
-    }
+
+    await withTransaction(async (session) => {
+      const studio = await Studio.findOne({ owner: req.user._id }).session(session);
+      const studioId = studio ? studio._id : req.user.studioId;
+      if (!studio) {
+        const error = new Error("Studio not found");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const existing = await StudioFacility.findOne({ studioId, facilityType }).session(session);
+      const currentTier = existing ? existing.tierLevel : 0;
+      const upgradeDetails = calculateFacilityUpgrade(facilityType, currentTier || 1);
+
+      const updatedStudio = await Studio.findOneAndUpdate(
+        { _id: studioId, money: { $gte: upgradeDetails.cost } },
+        { $inc: { money: -upgradeDetails.cost } },
+        { returnDocument: "after", session }
+      );
+
+      if (!updatedStudio) {
+        const error = new Error("Insufficient studio funds to build facility");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      if (existing) {
+        existing.tierLevel = upgradeDetails.nextTier;
+        existing.qualityBoost = upgradeDetails.qualityBoost;
+        existing.maintenanceCostPerWeek = upgradeDetails.maintenanceCostPerWeek;
+        existing.rentalIncomePerWeek = upgradeDetails.rentalIncomePerWeek;
+        facility = await existing.save({ session });
+      } else {
+        const [createdFacility] = await StudioFacility.create(
+          [
+            {
+              studioId,
+              facilityType,
+              tierLevel: 1,
+              qualityBoost: upgradeDetails.qualityBoost,
+              maintenanceCostPerWeek: upgradeDetails.maintenanceCostPerWeek,
+              rentalIncomePerWeek: upgradeDetails.rentalIncomePerWeek,
+            },
+          ],
+          { session }
+        );
+        facility = createdFacility;
+      }
+    });
 
     return res.status(201).json({
       success: true,

@@ -40,5 +40,7 @@ const studioFacilitySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+studioFacilitySchema.index({ studioId: 1, facilityType: 1 }, { unique: true });
+
 const StudioFacility = mongoose.model("StudioFacility", studioFacilitySchema);
 export default StudioFacility;

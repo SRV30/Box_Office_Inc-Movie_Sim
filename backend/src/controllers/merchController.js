@@ -2,6 +2,7 @@ import Movie from "../models/Movie.js";
 import Studio from "../models/Studio.js";
 import GameState from "../models/GameState.js";
 import { MERCH_BOOST_COST } from "../constants/gameConstants.js";
+import { withTransaction } from "../utils/financeTransactionHelper.js";
 
 export const getMerchandiseStats = async (req, res) => {
   try {
@@ -65,26 +66,39 @@ export const getMerchandiseStats = async (req, res) => {
 export const boostMerchandiseLevel = async (req, res) => {
   try {
     const { movieId } = req.params;
-    const studio = await Studio.findOne({ owner: req.user._id });
-    if (!studio) {
-      return res.status(404).json({ success: false, message: "Studio not found" });
-    }
+    let movie;
+    let studio;
 
-    const movie = await Movie.findOne({ _id: movieId, studioId: studio._id });
-    if (!movie) {
-      return res.status(404).json({ success: false, message: "Movie not found or unauthorized" });
-    }
+    await withTransaction(async (session) => {
+      const updatedStudio = await Studio.findOneAndUpdate(
+        { owner: req.user._id, money: { $gte: MERCH_BOOST_COST } },
+        { $inc: { money: -MERCH_BOOST_COST } },
+        { returnDocument: "after", session }
+      );
 
-    const cost = 2500000; // 2.5 million rupees
-    if (studio.money < cost) {
-      return res.status(400).json({ success: false, message: "Insufficient funds to upgrade merchandising campaign" });
-    }
+      if (!updatedStudio) {
+        const checkStudio = await Studio.findOne({ owner: req.user._id }).session(session);
+        if (!checkStudio) {
+          const error = new Error("Studio not found");
+          error.statusCode = 404;
+          throw error;
+        }
+        const error = new Error("Insufficient funds to upgrade merchandising campaign");
+        error.statusCode = 400;
+        throw error;
+      }
+      studio = updatedStudio;
 
-    movie.merchandiseLevel = (movie.merchandiseLevel || 0) + 1;
-    studio.money -= MERCH_BOOST_COST;
+      movie = await Movie.findOne({ _id: movieId, studioId: studio._id }).session(session);
+      if (!movie) {
+        const error = new Error("Movie not found or unauthorized");
+        error.statusCode = 404;
+        throw error;
+      }
 
-    await movie.save();
-    await studio.save();
+      movie.merchandiseLevel = (movie.merchandiseLevel || 0) + 1;
+      await movie.save({ session });
+    });
 
     res.status(200).json({
       message: `Successfully upgraded ${movie.title} merchandise campaign to Level ${movie.merchandiseLevel}`,
@@ -92,6 +106,9 @@ export const boostMerchandiseLevel = async (req, res) => {
       studioMoney: studio.money
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
