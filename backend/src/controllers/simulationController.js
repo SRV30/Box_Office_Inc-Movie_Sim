@@ -74,7 +74,9 @@ export const simulateWeek = async (req, res) => {
         }
 
         const prevMoney = studio.money || 0;
-        const weekRivalReleases = await runWeeklySimulation(gameState, studio);
+        const simResult = await runWeeklySimulation(gameState, studio);
+        const weekRivalReleases = simResult?.rivalReleases || (Array.isArray(simResult) ? simResult : []);
+        const finSummary = simResult?.financialSummary || { payroll: 0, movieCosts: 0, marketingCosts: 0 };
         gameState.lastSimulatedWeek = gameState.currentWeek;
         allRivalReleases.push(...(weekRivalReleases || []));
 
@@ -85,9 +87,9 @@ export const simulateWeek = async (req, res) => {
             year: Math.floor((gameState.currentWeek - 2) / 52) + 1,
             revenue: Math.max(0, studio.money - prevMoney),
             expenses: Math.max(0, prevMoney - studio.money),
-            payroll: 0,
-            movieCosts: 0,
-            marketingCosts: 0,
+            payroll: finSummary.payroll || 0,
+            movieCosts: finSummary.movieCosts || 0,
+            marketingCosts: finSummary.marketingCosts || 0,
             profit: studio.money - prevMoney,
             balance: studio.money
         });
