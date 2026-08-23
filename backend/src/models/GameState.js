@@ -755,10 +755,14 @@ const gameStateSchema = new mongoose.Schema(
         backendPoints: { type: Number, default: 0, min: 0, max: 25 }, // percentage of profit
         movieCount: { type: Number, default: 1, min: 1, max: 10 },    // multi-picture deal
       },
-      patience: { type: Number, default: 3 },  // rounds before talent walks away
-      round: { type: Number, default: 0 },
       status: { type: String, enum: ["PENDING", "ACCEPTED", "REJECTED", "EXPIRED"], default: "PENDING" },
     }],
+
+    // Legacy support for pastAwards prior to externalization (Issue #517)
+    pastAwards: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: undefined,
+    },
   },
   {
     timestamps: true,

@@ -161,18 +161,40 @@ export const getPastAwards = async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
 
-    const [awards, total] = await Promise.all([
+    const [dbAwards, totalDbAwards] = await Promise.all([
       PastAward.find({ gameStateId: gameState._id })
         .sort({ year: -1 })
-        .skip(skip)
-        .limit(limit)
         .lean(),
       PastAward.countDocuments({ gameStateId: gameState._id }),
     ]);
 
+    // Backward compatibility: If gameState contains legacy embedded pastAwards, merge them deduplicating by year
+    const legacyAwards = Array.isArray(gameState.pastAwards) ? gameState.pastAwards : [];
+    const awardsMap = new Map();
+
+    for (const la of legacyAwards) {
+      if (la && typeof la.year === "number") {
+        awardsMap.set(la.year, {
+          ...la,
+          _id: la._id || `legacy-${la.year}`,
+          gameStateId: gameState._id,
+        });
+      }
+    }
+
+    for (const da of dbAwards) {
+      if (da && typeof da.year === "number") {
+        awardsMap.set(da.year, da);
+      }
+    }
+
+    const allAwards = Array.from(awardsMap.values()).sort((a, b) => b.year - a.year);
+    const total = allAwards.length;
+    const paginatedAwards = allAwards.slice(skip, skip + limit);
+
     res.status(200).json({
       success: true,
-      awards,
+      awards: paginatedAwards,
       pagination: {
         total,
         page,

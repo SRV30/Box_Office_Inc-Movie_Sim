@@ -44,11 +44,7 @@ export const processAnnualAwards = async (gameState, studio) => {
         bestActorName: bestActorMovie.leadActorName || "Unknown Actor",
     };
 
-    try {
-        await PastAward.create(awardRecord);
-    } catch (awardErr) {
-        console.error("Failed to persist PastAward:", awardErr.message);
-    }
+    await PastAward.create(awardRecord);
 
     // Notify the user if their studio won
     if (studio) {
