@@ -120,6 +120,9 @@ const movieSchema = new mongoose.Schema(
 
 // Compound index: simulation queries filter by studioId + status (issue #398)
 movieSchema.index({ studioId: 1, status: 1 });
+movieSchema.index({ scheduledReleaseWeek: 1, status: 1 });
+movieSchema.index({ studioId: 1, scheduledReleaseWeek: 1 });
+movieSchema.index({ releaseWeek: 1, studioId: 1 });
 
 movieSchema.virtual("totalGross").get(function () {
   return this.boxOffice;

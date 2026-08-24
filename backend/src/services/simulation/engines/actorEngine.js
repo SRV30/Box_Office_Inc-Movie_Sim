@@ -97,12 +97,15 @@ export const processActorAging = async (gameState) => {
     await MarketActor.deleteMany({ _id: { $in: retiredIds } });
   }
 
-  // Update surviving market actors
-  for (const actor of marketResult.activeActors) {
-    await MarketActor.updateOne(
-      { _id: actor._id },
-      { $set: { age: actor.age } }
-    );
+  // Update surviving market actors via bulkWrite
+  if (marketResult.activeActors.length > 0) {
+    const bulkOps = marketResult.activeActors.map((actor) => ({
+      updateOne: {
+        filter: { _id: actor._id },
+        update: { $set: { age: actor.age } },
+      },
+    }));
+    await MarketActor.bulkWrite(bulkOps);
   }
 
   // 2. Age Owned Actors
