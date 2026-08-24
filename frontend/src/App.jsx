@@ -60,6 +60,7 @@ import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
 import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
+import ProgressionDashboard from "./pages/progression/ProgressionDashboard";
 
 function App() {
   return (
@@ -107,6 +108,22 @@ function App() {
           element={
             <ProtectedRoute>
               <HistoricRecords />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/progression"
+          element={
+            <ProtectedRoute>
+              <ProgressionDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/achievements"
+          element={
+            <ProtectedRoute>
+              <ProgressionDashboard />
             </ProtectedRoute>
           }
         />
