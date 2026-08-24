@@ -8,6 +8,7 @@ import MarketCrewTeam from "./MarketCrewTeam.js";
 import Notification from "./Notification.js";
 import TalentHistory from "./TalentHistory.js";
 import PastAward from "./PastAward.js";
+import Progression from "./Progression.js";
 
 console.log("Models Loaded");
 
@@ -22,4 +23,5 @@ export {
   Notification,
   TalentHistory,
   PastAward,
+  Progression,
 };
