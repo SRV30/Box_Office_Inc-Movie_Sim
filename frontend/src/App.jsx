@@ -60,7 +60,7 @@ import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
 import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
-import ProgressionDashboard from "./pages/progression/ProgressionDashboard";
+import StudioHQ from "./pages/studio/StudioHQ";
 
 function App() {
   return (
@@ -112,18 +112,18 @@ function App() {
           }
         />
         <Route
-          path="/progression"
+          path="/hq"
           element={
             <ProtectedRoute>
-              <ProgressionDashboard />
+              <StudioHQ />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/achievements"
+          path="/studio/hq"
           element={
             <ProtectedRoute>
-              <ProgressionDashboard />
+              <StudioHQ />
             </ProtectedRoute>
           }
         />
