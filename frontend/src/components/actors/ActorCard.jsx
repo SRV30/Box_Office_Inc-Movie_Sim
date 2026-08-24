@@ -17,6 +17,13 @@ const cardStyles = {
   Legendary: "hover:border-amber-500",
 };
 
+const careerStageStyles = {
+  EMERGING: "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30",
+  ESTABLISHED: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+  VETERAN: "bg-purple-500/20 text-purple-300 border border-purple-500/30",
+  LEGACY: "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold shadow-xs",
+};
+
 const formatMoney = (amount) => Number(amount || 0).toLocaleString("en-IN");
 
 const ActorCard = ({ actor, index, mode, onHire, onFire, contractWeeks = STANDARD_CONTRACT_WEEKS }) => {
@@ -39,6 +46,16 @@ const ActorCard = ({ actor, index, mode, onHire, onFire, contractWeeks = STANDAR
           {actor.rarity}
         </span>
 
+        {actor.careerStage && (
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide ${
+              careerStageStyles[actor.careerStage] || "bg-slate-700 text-slate-300"
+            }`}
+          >
+            {actor.careerStageLabel || actor.careerStage}
+          </span>
+        )}
+
         <span className="text-xs text-slate-400">Age {Math.floor(Number(actor.age || 0))}</span>
       </div>
 
@@ -50,7 +67,14 @@ const ActorCard = ({ actor, index, mode, onHire, onFire, contractWeeks = STANDAR
         />
 
         <h2 className="mt-4 text-center text-xl font-bold text-white">{actor.name}</h2>
-        <p className="text-sm text-slate-400">{actor.status}</p>
+        <div className="mt-1 flex items-center gap-2">
+          <p className="text-sm text-slate-400">{actor.status}</p>
+          {actor.stardomTierLabel && (
+            <span className="rounded-md bg-slate-800/80 px-2 py-0.5 text-xs text-violet-300 font-medium">
+              ★ {actor.stardomTierLabel}
+            </span>
+          )}
+        </div>
         <p className="mt-2 text-xs text-slate-500">
           Discovery {Math.min(100, Number(actor.discovered || 0))}%
         </p>
