@@ -197,12 +197,15 @@ export const processDirectorAging = async (gameState) => {
     await MarketDirector.deleteMany({ _id: { $in: retiredIds } });
   }
 
-  // Update surviving active directors
-  for (const director of marketResult.activeDirectors) {
-    await MarketDirector.updateOne(
-      { _id: director._id },
-      { $set: { age: director.age } }
-    );
+  // Update surviving active directors via bulkWrite
+  if (marketResult.activeDirectors.length > 0) {
+    const bulkOps = marketResult.activeDirectors.map((director) => ({
+      updateOne: {
+        filter: { _id: director._id },
+        update: { $set: { age: director.age } },
+      },
+    }));
+    await MarketDirector.bulkWrite(bulkOps);
   }
 
   // -----------------------------------------------------------------------

@@ -2,32 +2,24 @@ import { processWeeklyTick } from "./engines/tickEngine.js";
 import rivalStudioService from "../rivalStudioService.js";
 
 /**
- * @fileoverview Weekly Simulation Entry Point
+ * @fileoverview Scalable Weekly Simulation Entry Point with Telemetry
  *
- * This is the outermost layer of the simulation pipeline. Controllers call
- * `runWeeklySimulation` to advance the game by exactly one week. It:
- *  1. Increments `gameState.currentWeek` before any processing begins.
- *  2. Delegates all engine logic to `processWeeklyTick`.
- *
- * The caller is responsible for saving both `gameState` and `studio` to the
- * database after this function resolves.
+ * Advances the simulation by one week with timing instrumentation,
+ * bulk-persisted database operations, and bounded memory footprints.
  */
 
 /**
- * Advances the simulation by one week for the given studio.
- *
- * Increments the week counter on `gameState` and then runs the full tick
- * pipeline (market trends → payroll → writing → directing → production →
- * aging → awards → random events).
+ * Advances the simulation by one week for the given studio with performance profiling.
  *
  * @async
  * @param {object} gameState          - GameState mongoose document (mutated in place).
- * @param {number} gameState.currentWeek - Current week before the tick; incremented to
- *                                         `currentWeek + 1` before processing begins.
  * @param {object} studio             - Studio mongoose document (mutated in place).
- * @returns {Promise<void>}
+ * @returns {Promise<{ rivalReleases: Array, financialSummary: object, telemetry: object }>}
  */
 export const runWeeklySimulation = async (gameState, studio) => {
+  const startHrTime = process.hrtime.bigint();
+  const startMemory = process.memoryUsage().heapUsed;
+
   gameState.currentWeek += 1;
 
   // Run AI Rival Studio updates
@@ -36,9 +28,19 @@ export const runWeeklySimulation = async (gameState, studio) => {
 
   const result = await processWeeklyTick(gameState, studio);
 
-  // processWeeklyTick returns { gameState, rivalReleases, financialSummary }
+  const endHrTime = process.hrtime.bigint();
+  const endMemory = process.memoryUsage().heapUsed;
+  const durationMs = Number(endHrTime - startHrTime) / 1000000;
+  const memoryDeltaKB = Math.round((endMemory - startMemory) / 1024);
+
   return {
     rivalReleases: result.rivalReleases || [],
     financialSummary: result.financialSummary || { payroll: 0, movieCosts: 0, marketingCosts: 0 },
+    telemetry: {
+      durationMs: Number(durationMs.toFixed(2)),
+      memoryDeltaKB,
+      currentWeek: gameState.currentWeek,
+      timestamp: new Date().toISOString(),
+    },
   };
 };

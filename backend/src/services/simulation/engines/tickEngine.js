@@ -125,7 +125,14 @@ export const processWeeklyTick = async (gameState, studio) => {
   const actorAlreadyProcessed = (gameState.actorAwardYearsProcessed || []).includes(awardYear);
 
   if (isAwardWeek && (!directorAlreadyProcessed || !actorAlreadyProcessed)) {
-    const histories = await TalentHistory.find({ gameStateId: gameState._id }).lean();
+    // Bounded history fetch: only pull CAREER and AWARD entries needed for award processing
+    const histories = await TalentHistory.find({
+      gameStateId: gameState._id,
+      type: { $in: ["CAREER", "AWARD"] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .lean();
 
     // Fetch market talent from separate collections (issue #188) and attach
     // them temporarily to gameState for award processing.
@@ -169,39 +176,46 @@ export const processWeeklyTick = async (gameState, studio) => {
   delete gameState.marketActors;
   if (origMarketDirectors !== undefined) gameState.marketDirectors = origMarketDirectors;
 
-  // Persist award mutations back to MarketDirector/MarketActor collections
-  if (gameState._marketDirectors) {
-    for (const director of gameState._marketDirectors) {
-      if (director._id) {
-        await MarketDirector.updateOne(
-          { _id: director._id },
-          {
+  // Persist award mutations back to MarketDirector/MarketActor collections via bulkWrite
+  if (gameState._marketDirectors && gameState._marketDirectors.length > 0) {
+    const directorBulkOps = gameState._marketDirectors
+      .filter((d) => d._id)
+      .map((director) => ({
+        updateOne: {
+          filter: { _id: director._id },
+          update: {
             $set: {
               awards: director.awards,
               reputation: director.reputation,
               salary: director.salary,
               marketValue: director.marketValue,
             },
-          }
-        );
-      }
+          },
+        },
+      }));
+    if (directorBulkOps.length > 0) {
+      await MarketDirector.bulkWrite(directorBulkOps);
     }
   }
-  if (gameState._marketActors) {
-    for (const actor of gameState._marketActors) {
-      if (actor._id) {
-        await MarketActor.updateOne(
-          { _id: actor._id },
-          {
+
+  if (gameState._marketActors && gameState._marketActors.length > 0) {
+    const actorBulkOps = gameState._marketActors
+      .filter((a) => a._id)
+      .map((actor) => ({
+        updateOne: {
+          filter: { _id: actor._id },
+          update: {
             $set: {
               awards: actor.awards,
               popularity: actor.popularity,
               salary: actor.salary,
               fanbase: actor.fanbase,
             },
-          }
-        );
-      }
+          },
+        },
+      }));
+    if (actorBulkOps.length > 0) {
+      await MarketActor.bulkWrite(actorBulkOps);
     }
   }
 

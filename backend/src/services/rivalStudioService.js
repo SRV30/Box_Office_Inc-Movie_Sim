@@ -7,6 +7,7 @@ const RIVAL_NAMES = ['Apex Pictures', 'Vanguard Cinema', 'Horizon Studios', 'Ape
  * 1. Initialize AI Rival Studios if they don't exist yet
  */
 export async function initializeRivalStudios() {
+  if (RivalStudio.db?.readyState !== 1) return;
   const existingCount = await RivalStudio.countDocuments();
   if (existingCount === 0) {
     const defaultStudios = RIVAL_NAMES.map((name) => ({
@@ -22,6 +23,7 @@ export async function initializeRivalStudios() {
  * 2. Automated Movie Production (Tick / Simulation Step)
  */
 export async function simulateRivalTurn() {
+  if (RivalStudio.db?.readyState !== 1) return;
   const rivalStudios = await RivalStudio.find();
 
   for (let studio of rivalStudios) {
