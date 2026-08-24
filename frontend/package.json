@@ -14,7 +14,7 @@
     "@reduxjs/toolkit": "^2.12.0",
     "@tailwindcss/vite": "^4.3.0",
     "axios": "^1.16.1",
-    "lucide-react": "^1.31.0",
+    "lucide-react": "^1.33.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.8",
     "react-redux": "^9.3.0",
