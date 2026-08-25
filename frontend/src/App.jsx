@@ -11,6 +11,7 @@ import Scripts from "./pages/scripts/Scripts";
 import Writers from "./pages/writers/Writers";
 import Directors from "./pages/directors/Directors";
 import Actors from "./pages/actors/Actors";
+import ComposersHub from "./pages/talent/ComposersHub";
 import CrewMarket from "./pages/crew/CrewMarket";
 import OwnedCrew from "./pages/crew/OwnedCrew";
 import ActiveMovies from "./pages/movies/ActiveMovies";
@@ -272,6 +273,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Actors />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/composers"
+          element={
+            <ProtectedRoute>
+              <ComposersHub />
             </ProtectedRoute>
           }
         />
