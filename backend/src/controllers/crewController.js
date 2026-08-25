@@ -5,6 +5,7 @@ import { getMarketplaceTalent, invalidateUserCache } from "../utils/marketplaceH
 import Notification from "../models/Notification.js";
 import { calculateSigningFee } from "../services/talent/signingFeeService.js";
 import MarketCrewTeam from "../models/MarketCrewTeam.js";
+import CrewTeamEngine from "../services/crew/crewTeamEngine.js";
 
 const findGameState = async (userId) => GameState.findOne({ user: userId });
 
@@ -106,6 +107,38 @@ export const getCrewProfile = async (req, res) => {
     return res.status(200).json({ success: true, profile: crew });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const evaluateCrewImpact = async (req, res, next) => {
+  try {
+    const { technicalQuality, vfxQuality, creativity, reliability, morale } = req.body;
+    const impact = CrewTeamEngine.calculateProductionImpact({
+      technicalQuality,
+      vfxQuality,
+      creativity,
+      reliability,
+      morale,
+    });
+    res.status(200).json({ success: true, data: impact });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkCrewAvailability = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const gameState = await findGameState(req.user._id);
+    if (!gameState) return res.status(404).json({ success: false, message: "Game state not found" });
+
+    const crew = (gameState.ownedCrewTeams || []).find((c) => c.id === id);
+    if (!crew) return res.status(404).json({ success: false, message: "Crew team not found" });
+
+    const availability = CrewTeamEngine.checkConflictAndOverbooking(crew, gameState.currentWeek);
+    res.status(200).json({ success: true, data: availability });
+  } catch (error) {
+    next(error);
   }
 };
 

@@ -13,6 +13,7 @@ import Directors from "./pages/directors/Directors";
 import Actors from "./pages/actors/Actors";
 import CrewMarket from "./pages/crew/CrewMarket";
 import OwnedCrew from "./pages/crew/OwnedCrew";
+import CrewManagementHub from "./pages/crew/CrewManagementHub";
 import ActiveMovies from "./pages/movies/ActiveMovies";
 import CreateMovie from "./pages/movies/CreateMovie";
 import MovieDetails from "./pages/movies/MovieDetails";
@@ -112,6 +113,22 @@ function App() {
           element={
             <ProtectedRoute>
               <HistoricRecords />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <SimulationAnalyticsDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/simulation/analytics"
+          element={
+            <ProtectedRoute>
+              <SimulationAnalyticsDashboard />
             </ProtectedRoute>
           }
         />
@@ -329,6 +346,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CrewMarket />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/crew/hub"
+          element={
+            <ProtectedRoute>
+              <CrewManagementHub />
             </ProtectedRoute>
           }
         />

@@ -4,6 +4,7 @@ import { VERDICT_LIST } from "../constants/verdicts.js";
 const movieSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
+    genre: { type: String, default: "Drama" },
     studioId: { type: mongoose.Schema.Types.ObjectId, ref: "Studio", required: true },
     scriptId: { type: String, required: true },
     directorId: { type: String, required: true },
