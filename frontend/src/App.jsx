@@ -62,13 +62,16 @@ import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
 import StudioHQ from "./pages/studio/StudioHQ";
-import SimulationAnalyticsDashboard from "./pages/analytics/SimulationAnalyticsDashboard";
+import { TutorialProvider } from "./context/TutorialContext";
+import TutorialGuideOverlay from "./components/tutorial/TutorialGuideOverlay";
 
 function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <Routes>
+        <TutorialProvider>
+          <TutorialGuideOverlay />
+          <Routes>
         <Route path="/register" element={<Register />} />
 
         <Route path="/login" element={<Login />} />
@@ -560,6 +563,7 @@ function App() {
         />
       </Routes>
       <Toast />
+      </TutorialProvider>
     </ErrorBoundary>
   </BrowserRouter>
 
