@@ -763,6 +763,19 @@ const gameStateSchema = new mongoose.Schema(
       type: [mongoose.Schema.Types.Mixed],
       default: undefined,
     },
+
+    // First-Time Player Tutorial & Guidance System (issue #527)
+    tutorialProgress: {
+      isActive: { type: Boolean, default: true },
+      currentStep: { type: Number, default: 0 },
+      currentStepId: { type: String, default: "WELCOME_STUDIO" },
+      completedSteps: [{ type: String }],
+      dismissedTooltips: [{ type: String }],
+      isCompleted: { type: Boolean, default: false },
+      isSkipped: { type: Boolean, default: false },
+      replayCount: { type: Number, default: 0 },
+      lastUpdated: { type: Date, default: Date.now },
+    },
   },
   {
     timestamps: true,
