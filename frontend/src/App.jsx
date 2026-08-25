@@ -61,6 +61,7 @@ import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
 import StudioHQ from "./pages/studio/StudioHQ";
+import SimulationAnalyticsDashboard from "./pages/analytics/SimulationAnalyticsDashboard";
 
 function App() {
   return (
@@ -108,6 +109,22 @@ function App() {
           element={
             <ProtectedRoute>
               <HistoricRecords />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <SimulationAnalyticsDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/simulation/analytics"
+          element={
+            <ProtectedRoute>
+              <SimulationAnalyticsDashboard />
             </ProtectedRoute>
           }
         />

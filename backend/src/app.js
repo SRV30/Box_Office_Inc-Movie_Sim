@@ -57,6 +57,7 @@ import awardsRoutes from "./routes/awardsRoutes.js";
 import syndicationRoutes from "./routes/syndicationRoutes.js";
 import festivalRoutes from "./routes/festivalRoutes.js";
 import progressionRoutes from "./routes/progressionRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -158,6 +159,7 @@ app.use("/api/facilities", apiRateLimiter, facilityRoutes);
 app.use("/api/syndication", apiRateLimiter, syndicationRoutes);
 app.use("/api/festivals", apiRateLimiter, festivalRoutes);
 app.use("/api/progression", apiRateLimiter, progressionRoutes);
+app.use("/api/analytics", apiRateLimiter, analyticsRoutes);
 // app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
 
 app.use((req, res) => {
