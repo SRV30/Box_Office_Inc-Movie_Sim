@@ -11,6 +11,7 @@ import Scripts from "./pages/scripts/Scripts";
 import Writers from "./pages/writers/Writers";
 import Directors from "./pages/directors/Directors";
 import Actors from "./pages/actors/Actors";
+import ComposersHub from "./pages/talent/ComposersHub";
 import CrewMarket from "./pages/crew/CrewMarket";
 import OwnedCrew from "./pages/crew/OwnedCrew";
 import CrewManagementHub from "./pages/crew/CrewManagementHub";
@@ -62,13 +63,16 @@ import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
 import StudioHQ from "./pages/studio/StudioHQ";
-import SimulationAnalyticsDashboard from "./pages/analytics/SimulationAnalyticsDashboard";
+import { TutorialProvider } from "./context/TutorialContext";
+import TutorialGuideOverlay from "./components/tutorial/TutorialGuideOverlay";
 
 function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <Routes>
+        <TutorialProvider>
+          <TutorialGuideOverlay />
+          <Routes>
         <Route path="/register" element={<Register />} />
 
         <Route path="/login" element={<Login />} />
@@ -290,6 +294,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Actors />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/composers"
+          element={
+            <ProtectedRoute>
+              <ComposersHub />
             </ProtectedRoute>
           }
         />
@@ -560,6 +572,7 @@ function App() {
         />
       </Routes>
       <Toast />
+      </TutorialProvider>
     </ErrorBoundary>
   </BrowserRouter>
 
