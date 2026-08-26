@@ -65,11 +65,6 @@ const composerSchema = new mongoose.Schema(
       type: [String],
       default: ["Drama", "Sci-Fi"],
     },
-    musicStyle: {
-      type: String,
-      enum: ["Orchestral", "Electronic / Synth", "Acoustic / Minimalist", "Choral Epic", "Jazz & Noir", "Hybrid Modern"],
-      default: "Orchestral",
-    },
     status: {
       type: String,
       enum: ["AVAILABLE", "UNDER_CONTRACT", "ASSIGNED", "TIRED", "RETIRED"],
@@ -82,10 +77,6 @@ const composerSchema = new mongoose.Schema(
     busyUntilWeek: {
       type: Number,
       default: 0,
-    },
-    retiredAtWeek: {
-      type: Number,
-      default: null,
     },
     scoresComposed: {
       type: Number,
@@ -113,7 +104,6 @@ const composerSchema = new mongoose.Schema(
 );
 
 composerSchema.index({ studio: 1, status: 1 });
-composerSchema.index({ musicalTalent: -1, popularity: -1 });
 
 const Composer = mongoose.model("Composer", composerSchema);
 

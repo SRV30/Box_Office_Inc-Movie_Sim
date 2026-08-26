@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "seed:industry": "node src/scripts/seedIndustryMarket.js"
   },
   "type": "module",
   "keywords": [],
