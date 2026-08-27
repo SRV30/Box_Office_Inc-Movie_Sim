@@ -114,6 +114,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: FileText,
     },
     {
+      name: "Talent Relationships",
+      path: "/talent/relationships",
+      icon: Heart,
+    },
+    {
       name: "Crew Market",
       path: "/crew",
       icon: Users,

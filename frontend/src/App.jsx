@@ -58,6 +58,7 @@ import TrophyRoom from "./pages/awards/TrophyRoom";
 import AwardsSeasonDashboard from "./pages/awards/AwardsSeasonDashboard";
 import StudioUpgrades from "./pages/studio/StudioUpgrades";
 import UnionManager from "./pages/studio/UnionManager";
+import TalentRelationshipsHub from "./pages/talent/TalentRelationshipsHub";
 import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
 import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
@@ -329,6 +330,14 @@ function App() {
           element={
             <ProtectedRoute>
               <TalentContractsManager />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/talent/relationships"
+          element={
+            <ProtectedRoute>
+              <TalentRelationshipsHub />
             </ProtectedRoute>
           }
         />
