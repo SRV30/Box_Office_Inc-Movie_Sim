@@ -20,6 +20,7 @@ import { processFanClubTick } from "./fanClubEngine.js";
 import { processUnionSatisfaction } from "./unionEngine.js";
 import { processScandals } from "./prEngine.js";
 import { processScheduledReleases } from "./clashEngine.js";
+import { updateSimulationRankings } from "../industryLeaderboardEngine.js";
 
 import { addNotification } from "../helpers/notificationHelper.js";
 import { processWriterAging } from "../helpers/agingHelper.js";
@@ -248,6 +249,9 @@ export const processWeeklyTick = async (gameState, studio) => {
   // 12. PR & Scandal events — roll for studio scandals and apply
   //     reputation decay (issue #281).
   processScandals(gameState, studio);
+
+  // 13. Industry Leaderboard & Ranking Update (issue #531)
+  await updateSimulationRankings(gameState, studio);
 
   const weeklyPayroll = payrollPaid || 0;
   const weeklyMovieCosts = studio._weeklyMovieCosts || 0;
