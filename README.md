@@ -93,6 +93,19 @@ npm run dev
 
 Create `.env` files using the provided examples before running the project.
 
+### Seeding the V1 Market
+To seed the simulation with 99 AI competitor studios, 1,000 actors, 300 directors, 500 writers, and 300 composers:
+```bash
+cd backend
+node src/scripts/seedIndustryMarket.js
+```
+
+### Documentation & Architecture Guides
+- 📖 [V1 Release Architecture & Quality Gate](docs/V1_RELEASE_ARCHITECTURE_AND_QUALITY_GATE.md)
+- 🧪 [V1 Simulation Acceptance Report](docs/V1_SIMULATION_ACCEPTANCE_REPORT.md)
+- 🏗️ [System Architecture](ARCHITECTURE.md)
+- 🤝 [Contributing Guidelines](CONTRIBUTING.md)
+
 ### Environment Variables
 
 #### Backend (`backend/.env`)
