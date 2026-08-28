@@ -1,4 +1,5 @@
 import { addNotification } from "../helpers/notificationHelper.js";
+import { generateNewsFromScandal } from "./newsEngine.js";
 
 /**
  * PR & Scandal Management Engine (issue #281)
@@ -80,7 +81,7 @@ export const PR_CAMPAIGNS = [
  * @param {object} studio - Studio document
  * @returns {Array} list of scandal events that fired
  */
-export const processScandals = (gameState, studio) => {
+export const processScandals = async (gameState, studio) => {
   const firedScandals = [];
   const currentWeek = gameState.currentWeek || 0;
 
@@ -102,6 +103,8 @@ export const processScandals = (gameState, studio) => {
         gameState,
         `SCANDAL: ${scandal.description} Reputation dropped to ${studio.reputation}.`
       );
+
+      await generateNewsFromScandal(scandal, studio, currentWeek);
 
       firedScandals.push(scandal);
 

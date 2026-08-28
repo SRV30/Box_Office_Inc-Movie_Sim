@@ -9,7 +9,7 @@ import { processCareerImpact } from "../simulation/engines/careerImpactEngine.js
 import { processStudioGrowth } from "../simulation/engines/studioGrowthEngine.js";
 import { computeFranchiseProgress } from "../simulation/engines/franchiseEngine.js";
 import { addNotification } from "../simulation/helpers/notificationHelper.js";
-import { generateNewsFromRelease } from "../simulation/engines/newsEngine.js";
+import { generateNewsFromRelease, generateNewsFromFranchise } from "../simulation/engines/newsEngine.js";
 import { findScriptById } from "./movieValidationService.js";
 import { computeClashPenalty } from "../simulation/engines/clashEngine.js";
 import { addHistoricRecord } from "../simulation/helpers/historicRecordHelper.js";
@@ -149,6 +149,10 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
 
   // Generate news article for the release
   await generateNewsFromRelease(movie, studio, gameState.currentWeek);
+
+  if (franchiseDoc) {
+    await generateNewsFromFranchise(movie, studio, franchiseDoc, gameState.currentWeek);
+  }
 
   // Add to historic records
   try {
