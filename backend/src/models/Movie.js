@@ -106,6 +106,24 @@ const movieSchema = new mongoose.Schema(
     coProducerStudioId: { type: String, default: null },
     coProducerShare: { type: Number, default: 0 },
 
+    // Regional & global cinema markets (issue #545)
+    targetMarkets: [{ type: String }],
+    primaryMarket: { type: String, default: "BOLLYWOOD" },
+    crossMarketRelease: { type: Boolean, default: false },
+    isCoProduction: { type: Boolean, default: false },
+    cinemaMarketRevenue: [
+      {
+        marketId: String,
+        marketName: String,
+        grossINR: Number,
+        grossLocal: Number,
+        netRevenue: Number,
+        localizationCost: Number,
+        ticketsSold: Number,
+        currency: String,
+      },
+    ],
+
     // Re-release and Director's Cut support (issue #283)
     isReRelease: { type: Boolean, default: false },
     reReleaseWeek: { type: Number, default: null },

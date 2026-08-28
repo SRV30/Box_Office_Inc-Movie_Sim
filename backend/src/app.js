@@ -59,6 +59,7 @@ import festivalRoutes from "./routes/festivalRoutes.js";
 import progressionRoutes from "./routes/progressionRoutes.js";
 import seederRoutes from "./routes/seederRoutes.js";
 import relationshipRoutes from "./routes/relationshipRoutes.js";
+import cinemaMarketRoutes from "./routes/cinemaMarketRoutes.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -162,6 +163,7 @@ app.use("/api/festivals", apiRateLimiter, festivalRoutes);
 app.use("/api/progression", apiRateLimiter, progressionRoutes);
 app.use("/api/seeder", apiRateLimiter, seederRoutes);
 app.use("/api/relationships", apiRateLimiter, relationshipRoutes);
+app.use("/api/cinema-markets", apiRateLimiter, cinemaMarketRoutes);
 // app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
 
 app.use((req, res) => {
