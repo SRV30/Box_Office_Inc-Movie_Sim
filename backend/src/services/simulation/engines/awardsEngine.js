@@ -2,6 +2,7 @@ import Movie from "../../../models/Movie.js";
 import Studio from "../../../models/Studio.js";
 import Notification from "../../../models/Notification.js";
 import PastAward from "../../../models/PastAward.js";
+import { generateNewsFromAwards } from "./newsEngine.js";
 
 // Awards run annually at Week 52.
 export const processAnnualAwards = async (gameState, studio) => {
@@ -78,6 +79,8 @@ export const processAnnualAwards = async (gameState, studio) => {
                 : `🏆 Annual Awards Year ${year}: Best Picture goes to '${bestPicture.title}'.`,
             createdAt: new Date(),
         });
+
+        await generateNewsFromAwards(bestPicture, studio, year, gameState.currentWeek, won);
     }
 };
 

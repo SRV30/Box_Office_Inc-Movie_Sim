@@ -3,6 +3,7 @@ import Movie from "../models/Movie.js";
 import Studio from "../models/Studio.js";
 import { addNotification } from "../services/simulation/helpers/notificationHelper.js";
 import { calculateStreamingRevenuePotential, computeHybridReleaseStrategy } from "../services/simulation/engines/streamingEngine.js";
+import { generateNewsFromStreamingDeal } from "../services/simulation/engines/newsEngine.js";
 
 // Get all streaming platforms
 export const getPlatforms = async (req, res) => {
@@ -172,6 +173,8 @@ export const acceptStreamingDeal = async (req, res) => {
     gameState.movieHistory.push(movie._id);
 
     addNotification(gameState, `Sold exclusive streaming rights for "${movie.title}" to ${platform.name} for ₹${(movie.streamingDeal.dealValue / 1000000).toFixed(1)}M.`);
+
+    await generateNewsFromStreamingDeal(movie, studio, platform.name, gameState.currentWeek);
 
     await movie.save();
     await studio.save();

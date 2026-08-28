@@ -248,7 +248,7 @@ export const processWeeklyTick = async (gameState, studio) => {
 
   // 12. PR & Scandal events — roll for studio scandals and apply
   //     reputation decay (issue #281).
-  processScandals(gameState, studio);
+  await processScandals(gameState, studio);
 
   // 13. Talent Relationship & Chemistry Lifecycle (issue #535)
   if (gameState.user) {

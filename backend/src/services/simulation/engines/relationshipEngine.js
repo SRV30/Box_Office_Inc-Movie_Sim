@@ -17,7 +17,7 @@
 
 import TalentRelationship, { RELATIONSHIP_TYPES } from "../../../models/TalentRelationship.js";
 import { addNotification } from "../helpers/notificationHelper.js";
-import { generateNewsFromEvent } from "./newsEngine.js";
+import { generateNewsFromEvent, generateNewsFromRelationship } from "./newsEngine.js";
 
 /**
  * Normalizes ID pair to ensure talentAId < talentBId for deterministic indexing.
@@ -182,7 +182,7 @@ export const processProductionCastDynamics = async (movie, gameState, studio) =>
 
         const msg = `On-set friction between ${rel.talentAName || "Lead"} and ${rel.talentBName || "Co-Star"} (${rel.type}) delayed production of "${movie.title}" by 1 week!`;
         addNotification(gameState, msg);
-        await generateNewsFromEvent("Set Conflict Reported", msg, gameState.currentWeek);
+        await generateNewsFromRelationship(rel, msg, gameState.currentWeek, movie, studio);
 
         rel.history.push({
           week: gameState.currentWeek,

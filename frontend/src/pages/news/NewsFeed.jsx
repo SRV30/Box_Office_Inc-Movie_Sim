@@ -38,6 +38,8 @@ const NewsFeed = () => {
     switch (type) {
       case "box_office":
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "review":
+        return "bg-cyan-500/10 text-cyan-400 border-cyan-500/20";
       case "trend":
         return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
       case "event":
@@ -46,26 +48,45 @@ const NewsFeed = () => {
         return "bg-rose-500/10 text-rose-400 border-rose-500/20";
       case "award":
         return "bg-purple-500/10 text-purple-400 border-purple-500/20";
+      case "scandal":
+        return "bg-red-500/10 text-red-400 border-red-500/20";
+      case "relationship":
+      case "celebrity":
+        return "bg-pink-500/10 text-pink-400 border-pink-500/20";
+      case "streaming":
+        return "bg-violet-500/10 text-violet-400 border-violet-500/20";
+      case "franchise":
+        return "bg-orange-500/10 text-orange-400 border-orange-500/20";
+      case "social":
+        return "bg-sky-500/10 text-sky-400 border-sky-500/20";
       default:
         return "bg-slate-500/10 text-slate-400 border-slate-500/20";
     }
   };
 
   const getTypeLabel = (type) => {
-    switch (type) {
-      case "box_office":
-        return "Box Office";
-      case "trend":
-        return "Trend Alert";
-      case "event":
-        return "Industry Event";
-      case "rivalry":
-        return "Rivalry";
-      case "award":
-        return "Awards";
-      default:
-        return "General";
-    }
+    const labels = {
+      box_office: "Box Office",
+      review: "Review",
+      trend: "Trend Alert",
+      event: "Industry Event",
+      rivalry: "Rivalry",
+      award: "Awards",
+      scandal: "Scandal",
+      relationship: "Relationships",
+      celebrity: "Celebrity",
+      streaming: "Streaming",
+      franchise: "Franchise",
+      business: "Business",
+      social: "Social Media",
+    };
+    return labels[type] || "General";
+  };
+
+  const getSentimentColor = (sentiment) => {
+    if (sentiment === "positive") return "text-emerald-400";
+    if (sentiment === "negative") return "text-rose-400";
+    return "text-slate-400";
   };
 
   return (
@@ -81,9 +102,10 @@ const NewsFeed = () => {
             {[
               { label: "All News", value: "" },
               { label: "Box Office", value: "box_office" },
+              { label: "Reviews", value: "review" },
               { label: "Trends", value: "trend" },
-              { label: "Events", value: "event" },
-              { label: "Rivalry", value: "rivalry" },
+              { label: "Scandals", value: "scandal" },
+              { label: "Awards", value: "award" },
             ].map((btn) => (
               <button
                 key={btn.value}
@@ -126,15 +148,29 @@ const NewsFeed = () => {
                   className="block bg-slate-950/60 backdrop-blur-xl border border-slate-800/60 rounded-2xl p-6 hover:border-slate-700/80 transition-all duration-300 hover:translate-y-[-2px] group cursor-pointer"
                 >
                   <div className="flex items-center justify-between gap-4 mb-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getBadgeColor(item.type)}`}>
-                      {getTypeLabel(item.type)}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getBadgeColor(item.type)}`}>
+                        {getTypeLabel(item.type)}
+                      </span>
+                      {item.sentiment && (
+                        <span className={`text-xs font-medium capitalize ${getSentimentColor(item.sentiment)}`}>
+                          {item.sentiment}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-slate-500 font-medium">Week {item.week}</span>
                   </div>
                   <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors duration-200">
                     {item.headline}
                   </h3>
-                  <p className="mt-3 text-slate-400 leading-relaxed text-sm md:text-base">{item.body}</p>
+                  <p className="mt-3 text-slate-400 leading-relaxed text-sm md:text-base line-clamp-2">{item.body}</p>
+                  {(item.source?.name || item.reach) && (
+                    <div className="mt-3 flex items-center gap-3 text-xs text-slate-500">
+                      {item.source?.name && <span>{item.source.name}</span>}
+                      {item.reach > 0 && <span>Reach: {item.reach}</span>}
+                      {item.source?.credibility > 0 && <span>Credibility: {item.source.credibility}%</span>}
+                    </div>
+                  )}
                 </Link>
               ))
             )}
