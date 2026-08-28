@@ -19,6 +19,7 @@ import ActiveMovies from "./pages/movies/ActiveMovies";
 import CreateMovie from "./pages/movies/CreateMovie";
 import MovieDetails from "./pages/movies/MovieDetails";
 import MarketingStrategies from "./pages/movies/MarketingStrategies";
+import SocialMediaHub from "./pages/marketing/SocialMediaHub";
 import ReadyForRelease from "./pages/movies/ReadyForRelease";
 import ReleaseResult from "./pages/movies/ReleaseResult";
 import MovieLibrary from "./pages/movies/MovieLibrary";
@@ -163,6 +164,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MarketingStrategies />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/marketing/social"
+          element={
+            <ProtectedRoute>
+              <SocialMediaHub />
             </ProtectedRoute>
           }
         />
