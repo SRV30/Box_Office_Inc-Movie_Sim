@@ -32,6 +32,7 @@ import StreamingBiddingHall from "./pages/streaming/StreamingBiddingHall";
 import RegionalBoxOfficeHub from "./pages/movies/RegionalBoxOfficeHub";
 import TVShowsHub from "./pages/tvshows/TVShowsHub";
 import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
+import TVShowDetailView from "./pages/tvshows/TVShowDetailView";
 import StudioStats from "./pages/studio/StudioStats";
 import FinancialHistory from "./pages/studio/FinancialHistory";
 import MerchDashboard from "./pages/merch/MerchDashboard";
@@ -398,6 +399,14 @@ function App() {
           element={
             <ProtectedRoute>
               <TVShowsHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tv-shows/:id"
+          element={
+            <ProtectedRoute>
+              <TVShowDetailView />
             </ProtectedRoute>
           }
         />

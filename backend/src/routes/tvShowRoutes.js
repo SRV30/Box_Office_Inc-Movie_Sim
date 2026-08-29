@@ -1,17 +1,23 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
-import { validate } from "../middleware/validationMiddleware.js";
-import { createTVShowSchema, getTVShowByIdSchema } from "../validators/tvShowValidators.js";
 import {
   getTVShows,
   getTVShowById,
   createTVShow,
+  renewTVShowSeason,
+  syndicateTVShow,
+  checkTalentConflictAPI,
 } from "../controllers/tvShowController.js";
 
 const router = express.Router();
 
-router.get("/", protect, getTVShows);
-router.post("/", protect, validate(createTVShowSchema), createTVShow);
-router.get("/:id", protect, validate(getTVShowByIdSchema), getTVShowById);
+router.use(protect);
+
+router.get("/", getTVShows);
+router.post("/", createTVShow);
+router.get("/check-conflict/:talentId", checkTalentConflictAPI);
+router.get("/:id", getTVShowById);
+router.post("/:id/renew", renewTVShowSeason);
+router.post("/:id/syndicate", syndicateTVShow);
 
 export default router;
