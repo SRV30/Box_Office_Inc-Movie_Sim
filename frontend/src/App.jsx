@@ -40,6 +40,7 @@ import AwardsCampaign from "./pages/awards/AwardsCampaign";
 import MarketDashboard from "./pages/dashboard/MarketDashboard";
 import Franchises from "./pages/studio/Franchises";
 import FranchiseDetail from "./pages/studio/FranchiseDetail";
+import FranchiseUniverseHub from "./pages/studio/FranchiseUniverseHub";
 import Leaderboard from "./pages/studio/Leaderboard";
 import HistoricRecords from "./pages/studio/HistoricRecords";
 import FanClubHub from "./pages/studio/FanClubHub";
@@ -519,6 +520,14 @@ function App() {
           element={
             <ProtectedRoute>
               <FranchiseDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/universe-v2"
+          element={
+            <ProtectedRoute>
+              <FranchiseUniverseHub />
             </ProtectedRoute>
           }
         />
