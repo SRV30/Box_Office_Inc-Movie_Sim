@@ -32,6 +32,7 @@ import StreamingBiddingHall from "./pages/streaming/StreamingBiddingHall";
 import RegionalBoxOfficeHub from "./pages/movies/RegionalBoxOfficeHub";
 import TVShowsHub from "./pages/tvshows/TVShowsHub";
 import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
+import TVShowDetailView from "./pages/tvshows/TVShowDetailView";
 import StudioStats from "./pages/studio/StudioStats";
 import FinancialHistory from "./pages/studio/FinancialHistory";
 import MerchDashboard from "./pages/merch/MerchDashboard";
@@ -63,6 +64,7 @@ import StudioUpgrades from "./pages/studio/StudioUpgrades";
 import UnionManager from "./pages/studio/UnionManager";
 import TalentRelationshipsHub from "./pages/talent/TalentRelationshipsHub";
 import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
+import CelebrityScandalHub from "./pages/studio/CelebrityScandalHub";
 import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
@@ -403,6 +405,14 @@ function App() {
           }
         />
         <Route
+          path="/tv-shows/:id"
+          element={
+            <ProtectedRoute>
+              <TVShowDetailView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/tv-shows/commission"
           element={
             <ProtectedRoute>
@@ -480,6 +490,14 @@ function App() {
           element={
             <ProtectedRoute>
               <PRCrisisCenter />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/scandals"
+          element={
+            <ProtectedRoute>
+              <CelebrityScandalHub />
             </ProtectedRoute>
           }
         />
