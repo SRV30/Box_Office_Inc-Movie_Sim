@@ -37,6 +37,7 @@ import TVShowDetailView from "./pages/tvshows/TVShowDetailView";
 import StudioStats from "./pages/studio/StudioStats";
 import FinancialHistory from "./pages/studio/FinancialHistory";
 import MerchDashboard from "./pages/merch/MerchDashboard";
+import MerchandiseEconomyHub from "./pages/merch/MerchandiseEconomyHub";
 import AwardsHistory from "./pages/studio/AwardsHistory";
 import AwardsCampaign from "./pages/awards/AwardsCampaign";
 import MarketDashboard from "./pages/dashboard/MarketDashboard";
@@ -459,6 +460,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MerchDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/merchandise-economy"
+          element={
+            <ProtectedRoute>
+              <MerchandiseEconomyHub />
             </ProtectedRoute>
           }
         />
