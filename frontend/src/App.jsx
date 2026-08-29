@@ -62,6 +62,7 @@ import StudioUpgrades from "./pages/studio/StudioUpgrades";
 import UnionManager from "./pages/studio/UnionManager";
 import TalentRelationshipsHub from "./pages/talent/TalentRelationshipsHub";
 import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
+import CelebrityScandalHub from "./pages/studio/CelebrityScandalHub";
 import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
@@ -471,6 +472,14 @@ function App() {
           element={
             <ProtectedRoute>
               <PRCrisisCenter />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/scandals"
+          element={
+            <ProtectedRoute>
+              <CelebrityScandalHub />
             </ProtectedRoute>
           }
         />
