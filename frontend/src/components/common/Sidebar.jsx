@@ -19,6 +19,7 @@ import {
   Heart,
   AlertTriangle,
   Tv,
+  Share2,
 } from "lucide-react";
 
 import { Link, useLocation } from "react-router-dom";
@@ -152,6 +153,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       name: "Fan Club & Con",
       path: "/studio/fanclub",
       icon: Heart,
+    },
+    {
+      name: "Social Media",
+      path: "/marketing/social",
+      icon: Share2,
     },
     {
       name: "Merchandising",

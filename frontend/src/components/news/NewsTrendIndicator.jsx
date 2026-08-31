@@ -3,23 +3,23 @@ import { Sparkles, TrendingUp, TrendingDown } from "lucide-react";
 const NewsTrendIndicator = ({ newsItems = [] }) => {
   const detectTrends = () => {
     const trends = [];
-    newsItems.forEach(item => {
-      const title = item.title.toLowerCase();
-      const content = item.content?.toLowerCase() || "";
+    newsItems.forEach((item) => {
+      const headline = (item.headline || item.title || "").toLowerCase();
+      const body = (item.body || item.content || "").toLowerCase();
       
-      if (title.includes("horror") || content.includes("horror")) {
-        if (title.includes("decline") || title.includes("dead") || title.includes("drop")) {
+      if (headline.includes("horror") || body.includes("horror")) {
+        if (headline.includes("decline") || headline.includes("dead") || headline.includes("drop")) {
           trends.push({ genre: "Horror", impact: "Decline", detail: "Sharp drop in interest", positive: false });
         } else {
           trends.push({ genre: "Horror", impact: "Hot", detail: "Rising interest", positive: true });
         }
       }
-      if (title.includes("fantasy") || content.includes("fantasy")) {
-        if (title.includes("surge") || title.includes("hot") || title.includes("gold")) {
+      if (headline.includes("fantasy") || body.includes("fantasy")) {
+        if (headline.includes("surge") || headline.includes("hot") || headline.includes("gold")) {
           trends.push({ genre: "High Fantasy", impact: "Surging", detail: "Massive box office demand", positive: true });
         }
       }
-      if (title.includes("action") || content.includes("action")) {
+      if (headline.includes("action") || body.includes("action")) {
         trends.push({ genre: "Action/Sci-Fi", impact: "Stable", detail: "Solid fan support", positive: true });
       }
     });

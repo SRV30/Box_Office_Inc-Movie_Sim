@@ -19,6 +19,7 @@ import ActiveMovies from "./pages/movies/ActiveMovies";
 import CreateMovie from "./pages/movies/CreateMovie";
 import MovieDetails from "./pages/movies/MovieDetails";
 import MarketingStrategies from "./pages/movies/MarketingStrategies";
+import SocialMediaHub from "./pages/marketing/SocialMediaHub";
 import ReadyForRelease from "./pages/movies/ReadyForRelease";
 import ReleaseResult from "./pages/movies/ReleaseResult";
 import MovieLibrary from "./pages/movies/MovieLibrary";
@@ -27,17 +28,22 @@ import ReviewDashboard from "./pages/movies/ReviewDashboard";
 import ProductionQueue from "./pages/movies/ProductionQueue";
 import MovieComparison from "./pages/movies/MovieComparison";
 import StreamingDeals from "./pages/movies/StreamingDeals";
+import StreamingBiddingHall from "./pages/streaming/StreamingBiddingHall";
+import StreamingPlatformManager from "./pages/streaming/StreamingPlatformManager";
 import RegionalBoxOfficeHub from "./pages/movies/RegionalBoxOfficeHub";
 import TVShowsHub from "./pages/tvshows/TVShowsHub";
 import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
+import TVShowDetailView from "./pages/tvshows/TVShowDetailView";
 import StudioStats from "./pages/studio/StudioStats";
 import FinancialHistory from "./pages/studio/FinancialHistory";
 import MerchDashboard from "./pages/merch/MerchDashboard";
+import MerchandiseEconomyHub from "./pages/merch/MerchandiseEconomyHub";
 import AwardsHistory from "./pages/studio/AwardsHistory";
 import AwardsCampaign from "./pages/awards/AwardsCampaign";
 import MarketDashboard from "./pages/dashboard/MarketDashboard";
 import Franchises from "./pages/studio/Franchises";
 import FranchiseDetail from "./pages/studio/FranchiseDetail";
+import FranchiseUniverseHub from "./pages/studio/FranchiseUniverseHub";
 import Leaderboard from "./pages/studio/Leaderboard";
 import HistoricRecords from "./pages/studio/HistoricRecords";
 import FanClubHub from "./pages/studio/FanClubHub";
@@ -60,6 +66,7 @@ import StudioUpgrades from "./pages/studio/StudioUpgrades";
 import UnionManager from "./pages/studio/UnionManager";
 import TalentRelationshipsHub from "./pages/talent/TalentRelationshipsHub";
 import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
+import CelebrityScandalHub from "./pages/studio/CelebrityScandalHub";
 import FacilityManager from "./pages/studio/FacilityManager";
 import SyndicationManager from "./pages/studio/SyndicationManager";
 import FestivalCircuit from "./pages/studio/FestivalCircuit";
@@ -167,6 +174,14 @@ function App() {
           }
         />
         <Route
+          path="/marketing/social"
+          element={
+            <ProtectedRoute>
+              <SocialMediaHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/movies/ready"
           element={
             <ProtectedRoute>
@@ -203,6 +218,14 @@ function App() {
           element={
             <ProtectedRoute>
               <StreamingBiddingHall />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/streaming/platform"
+          element={
+            <ProtectedRoute>
+              <StreamingPlatformManager />
             </ProtectedRoute>
           }
         />
@@ -392,6 +415,14 @@ function App() {
           }
         />
         <Route
+          path="/tv-shows/:id"
+          element={
+            <ProtectedRoute>
+              <TVShowDetailView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/tv-shows/commission"
           element={
             <ProtectedRoute>
@@ -433,6 +464,14 @@ function App() {
           }
         />
         <Route
+          path="/studio/merchandise-economy"
+          element={
+            <ProtectedRoute>
+              <MerchandiseEconomyHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/studio/awards"
           element={
             <ProtectedRoute>
@@ -461,6 +500,14 @@ function App() {
           element={
             <ProtectedRoute>
               <PRCrisisCenter />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/scandals"
+          element={
+            <ProtectedRoute>
+              <CelebrityScandalHub />
             </ProtectedRoute>
           }
         />
@@ -509,6 +556,14 @@ function App() {
           element={
             <ProtectedRoute>
               <FranchiseDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/universe-v2"
+          element={
+            <ProtectedRoute>
+              <FranchiseUniverseHub />
             </ProtectedRoute>
           }
         />
