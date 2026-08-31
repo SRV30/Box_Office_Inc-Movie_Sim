@@ -13,6 +13,7 @@ import { generateNewsFromRelease, generateNewsFromFranchise } from "../simulatio
 import { findScriptById } from "./movieValidationService.js";
 import { computeClashPenalty } from "../simulation/engines/clashEngine.js";
 import { addHistoricRecord } from "../simulation/helpers/historicRecordHelper.js";
+import { calculateMultiMarketRelease } from "../simulation/engines/cinemaMarketEngine.js";
 import SocialMediaAccount from "../../models/SocialMediaAccount.js";
 import { getSocialBoxOfficeMultiplier } from "../simulation/engines/socialMediaEngine.js";
 
@@ -62,16 +63,31 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
   const activeTrends = gameState.marketTrends?.activeTrends || [];
   const marketMultiplier = getGenreMultiplier(activeTrends, script?.genres);
   const demographicMultiplier = getDemographicMultiplier(script?.genres, movie.marketingCampaigns);
+
   const socialAccounts = await SocialMediaAccount.find({ userId: gameState.user }).lean();
   const socialMultiplier = getSocialBoxOfficeMultiplier(socialAccounts);
-  const boxOffice = generateBoxOffice(
-    movie,
-    leadActor,
-    director,
-    marketMultiplier,
-    demographicMultiplier,
-    franchiseDoc
-  );
+
+  let boxOffice;
+  if (movie.targetMarkets?.length > 0) {
+    const marketResult = calculateMultiMarketRelease(
+      movie,
+      leadActor || { popularity: 50 },
+      director || { skill: 50 },
+      movie.targetMarkets,
+      movie.primaryMarket || movie.targetMarkets[0]
+    );
+    movie.cinemaMarketRevenue = marketResult.markets;
+    boxOffice = marketResult;
+  } else {
+    boxOffice = generateBoxOffice(
+      movie,
+      leadActor,
+      director,
+      marketMultiplier,
+      demographicMultiplier,
+      franchiseDoc
+    );
+  }
   Object.assign(movie, boxOffice);
 
   if (socialMultiplier !== 1) {

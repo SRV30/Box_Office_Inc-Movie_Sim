@@ -31,6 +31,7 @@ import StreamingDeals from "./pages/movies/StreamingDeals";
 import StreamingBiddingHall from "./pages/streaming/StreamingBiddingHall";
 import StreamingPlatformManager from "./pages/streaming/StreamingPlatformManager";
 import RegionalBoxOfficeHub from "./pages/movies/RegionalBoxOfficeHub";
+import CinemaMarketsHub from "./pages/movies/CinemaMarketsHub";
 import TVShowsHub from "./pages/tvshows/TVShowsHub";
 import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
 import TVShowDetailView from "./pages/tvshows/TVShowDetailView";
@@ -194,6 +195,14 @@ function App() {
           element={
             <ProtectedRoute>
               <RegionalBoxOfficeHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/movies/cinema-markets"
+          element={
+            <ProtectedRoute>
+              <CinemaMarketsHub />
             </ProtectedRoute>
           }
         />

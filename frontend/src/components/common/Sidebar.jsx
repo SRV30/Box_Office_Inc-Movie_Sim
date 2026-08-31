@@ -75,6 +75,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Globe,
     },
     {
+      name: "Cinema Markets",
+      path: "/movies/cinema-markets",
+      icon: Globe,
+    },
+    {
       name: "Production Queue",
       path: "/movies/queue",
       icon: Layers,
