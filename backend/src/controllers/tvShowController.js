@@ -1,33 +1,13 @@
 import TVShow from "../models/TVShowModel.js";
 import Studio from "../models/Studio.js";
 import GameState from "../models/GameState.js";
-
-/**
- * @fileoverview TV Show controller (issue #41).
- *
- * Provides studio-scoped create / list / read endpoints for the TVShow model.
- * Follows the exact studio-ownership pattern already used by
- * `franchiseController.js` (resolve the studio via `Studio.findOne({ owner })`,
- * scope all queries by `studioId`), and adds an optional production-budget
- * mechanic so commissioning a show is a real studio investment when a budget is
- * supplied. All behaviour is additive and independent of the movie flow.
- */
-
-/**
- * Derives an initial 0–100 quality score from a production budget.
- *
- * Logarithmic so the first rupees matter most and returns diminish: a token
- * budget (~₹1M) lands near 38, ₹10M ≈ 56, ₹50M ≈ 73, ₹100M ≈ 80, clamping to
- * 100 around ₹1B. A zero/negative budget yields a baseline 30.
- *
- * @param {number} budget - Production budget in ₹.
- * @returns {number} Quality score clamped to [0, 100].
- */
-const deriveQualityFromBudget = (budget) => {
-  if (!budget || budget <= 0) return 30;
-  const score = 30 + Math.round(Math.log10(budget / 1000000 + 1) * 25);
-  return Math.max(0, Math.min(100, score));
-};
+import {
+  calculateTVShowQuality,
+  simulateEpisodeBroadcast,
+  evaluateSeasonRenewal,
+  checkSyndicationEligibility,
+  checkTalentTVConflict,
+} from "../services/simulation/engines/tvShowEngine.js";
 
 /**
  * GET /api/tv-shows
@@ -52,7 +32,7 @@ export const getTVShows = async (req, res) => {
 
 /**
  * GET /api/tv-shows/:id
- * Returns a single TV show, enforcing studio ownership.
+ * Returns a single TV show with full seasons and performance stats.
  */
 export const getTVShowById = async (req, res) => {
   try {
@@ -70,7 +50,9 @@ export const getTVShowById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Not authorized to view this TV show" });
     }
 
-    res.status(200).json({ success: true, tvShow });
+    const syndicationInfo = checkSyndicationEligibility(tvShow);
+
+    res.status(200).json({ success: true, tvShow, syndicationInfo });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -79,73 +61,199 @@ export const getTVShowById = async (req, res) => {
 /**
  * POST /api/tv-shows
  * Commissions a new TV show for the authenticated studio.
- *
- * Body: { title (required), genre?, seasons?, episodesPerSeason?, budget?, platformId? }
- *
- * If a positive `budget` is supplied, the studio must have sufficient funds and
- * the amount is deducted. If `platformId` is supplied it must reference a real
- * streaming platform in the player's game state.
  */
 export const createTVShow = async (req, res) => {
   try {
-    const { title, genre, seasons, episodesPerSeason, budget, platformId } = req.body;
+    const {
+      title,
+      genre = "Drama",
+      concept = "Original series",
+      networkOrPlatform = "Broadcast Network",
+      episodesPerSeason = 8,
+      budgetPerEpisode = 250000,
+      cast = [],
+      writers = [],
+      directors = [],
+    } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ success: false, message: "TV show title is required" });
     }
 
-    const numericBudget = Number(budget) || 0;
-    if (numericBudget < 0) {
-      return res.status(400).json({ success: false, message: "Budget cannot be negative" });
-    }
+    const numericBudgetPerEp = Math.max(50000, Number(budgetPerEpisode) || 250000);
+    const numericEpisodes = Math.max(4, Math.min(24, Number(episodesPerSeason) || 8));
+    const totalBudget = numericBudgetPerEp * numericEpisodes;
 
     const studio = await Studio.findOne({ owner: req.user._id });
     if (!studio) {
       return res.status(404).json({ success: false, message: "Studio not found" });
     }
 
-    if (studio.money < numericBudget) {
+    const studioCash = studio.money || studio.cash || 0;
+    if (studioCash < totalBudget) {
       return res.status(400).json({
         success: false,
-        message: `Insufficient funds. Production requires ₹${(numericBudget / 1000000).toFixed(1)}M but the studio only has ₹${(studio.money / 1000000).toFixed(1)}M.`,
+        message: `Insufficient funds. Season 1 production requires $${totalBudget.toLocaleString()} but studio only has $${studioCash.toLocaleString()}.`,
       });
     }
 
-    // Single game-state fetch, reused for platform validation and the week stamp.
-    const gameState = await GameState.findOne({ user: req.user._id });
+    // Deduct initial season budget
+    if (studio.money !== undefined) studio.money -= totalBudget;
+    if (studio.cash !== undefined) studio.cash = Math.max(0, studio.cash - totalBudget);
+    await studio.save();
 
-    let resolvedPlatformId = null;
-    if (platformId) {
-      const platform = gameState?.streamingPlatforms?.find((p) => p.id === platformId);
-      if (!platform) {
-        return res.status(400).json({ success: false, message: "Streaming platform not found" });
-      }
-      resolvedPlatformId = platform.id;
-    }
+    const quality = calculateTVShowQuality({
+      budgetPerEpisode: numericBudgetPerEp,
+      cast,
+      writers,
+      directors,
+    });
 
-    const currentWeek = gameState?.currentWeek || 0;
-
-    // Deduct the production budget (no-op when budget is 0).
-    if (numericBudget > 0) {
-      studio.money -= numericBudget;
-      await studio.save();
-    }
+    const initialSeason = {
+      seasonNumber: 1,
+      episodesCount: numericEpisodes,
+      status: "DEVELOPMENT",
+      budget: totalBudget,
+      episodes: [],
+      currentAiringEpisode: 0,
+    };
 
     const tvShow = await TVShow.create({
       studioId: studio._id,
       title: title.trim(),
-      genre: (genre && genre.trim()) || "Drama",
-      seasons: Math.max(1, Number(seasons) || 1),
-      episodesPerSeason: Math.max(1, Number(episodesPerSeason) || 8),
-      budget: numericBudget,
-      quality: deriveQualityFromBudget(numericBudget),
-      popularity: 0,
-      platformId: resolvedPlatformId,
-      status: "IN_PRODUCTION",
-      createdWeek: currentWeek,
+      genre,
+      concept,
+      networkOrPlatform,
+      status: "DEVELOPMENT",
+      totalSeasonsCount: 1,
+      totalEpisodesCount: numericEpisodes,
+      budgetPerEpisode: numericBudgetPerEp,
+      totalBudget,
+      quality,
+      popularity: 30,
+      cast,
+      writers,
+      directors,
+      seasons: [initialSeason],
+      createdWeek: 1,
     });
 
-    res.status(201).json({ success: true, tvShow });
+    res.status(201).json({ success: true, message: "TV Show commissioned successfully", tvShow });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /api/tv-shows/:id/renew
+ * Renews a TV show for an additional season
+ */
+export const renewTVShowSeason = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { episodesCount = 10, budgetPerEpisode } = req.body;
+
+    const tvShow = await TVShow.findById(id);
+    if (!tvShow) {
+      return res.status(404).json({ success: false, message: "TV show not found" });
+    }
+
+    const nextSeasonNumber = (tvShow.seasons?.length || 0) + 1;
+    const numBudgetPerEp = Number(budgetPerEpisode) || tvShow.budgetPerEpisode || 300000;
+    const totalSeasonCost = numBudgetPerEp * episodesCount;
+
+    const studio = await Studio.findById(tvShow.studioId);
+    const studioCash = studio?.money || studio?.cash || 0;
+
+    if (studioCash < totalSeasonCost) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient funds for Season ${nextSeasonNumber}. Cost: $${totalSeasonCost.toLocaleString()}`,
+      });
+    }
+
+    if (studio) {
+      if (studio.money !== undefined) studio.money -= totalSeasonCost;
+      if (studio.cash !== undefined) studio.cash = Math.max(0, studio.cash - totalSeasonCost);
+      await studio.save();
+    }
+
+    tvShow.seasons.push({
+      seasonNumber: nextSeasonNumber,
+      episodesCount,
+      status: "DEVELOPMENT",
+      budget: totalSeasonCost,
+      episodes: [],
+      currentAiringEpisode: 0,
+    });
+
+    tvShow.totalSeasonsCount = nextSeasonNumber;
+    tvShow.totalEpisodesCount = (tvShow.totalEpisodesCount || 0) + episodesCount;
+    tvShow.totalBudget = (tvShow.totalBudget || 0) + totalSeasonCost;
+    tvShow.status = "IN_PRODUCTION";
+    await tvShow.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Season ${nextSeasonNumber} successfully ordered into production!`,
+      tvShow,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /api/tv-shows/:id/syndicate
+ * Packages the completed TV series for domestic & global linear syndication
+ */
+export const syndicateTVShow = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tvShow = await TVShow.findById(id);
+    if (!tvShow) {
+      return res.status(404).json({ success: false, message: "TV show not found" });
+    }
+
+    const syndicationStatus = checkSyndicationEligibility(tvShow);
+    if (!syndicationStatus.syndicationEligible) {
+      return res.status(400).json({
+        success: false,
+        message: "TV show is not yet eligible for syndication (requires 5+ seasons or 80+ episodes).",
+      });
+    }
+
+    tvShow.isSyndicated = true;
+    tvShow.weeklySyndicationRoyalty = syndicationStatus.weeklySyndicationRoyalty;
+    tvShow.status = "SYNDICATED";
+    await tvShow.save();
+
+    res.status(200).json({
+      success: true,
+      message: `TV Show entered syndication! Generating $${syndicationStatus.weeklySyndicationRoyalty.toLocaleString()}/week in passive royalties.`,
+      tvShow,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * GET /api/tv-shows/check-conflict/:talentId
+ * Checks for scheduling conflicts for an actor or director
+ */
+export const checkTalentConflictAPI = async (req, res) => {
+  try {
+    const { talentId } = req.params;
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const activeShows = await TVShow.find({ studioId: studio._id });
+    const conflictResult = checkTalentTVConflict(talentId, activeShows);
+
+    res.status(200).json({ success: true, conflict: conflictResult });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

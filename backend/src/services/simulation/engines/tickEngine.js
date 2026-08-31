@@ -21,6 +21,7 @@ import { processUnionSatisfaction } from "./unionEngine.js";
 import { processScandals } from "./prEngine.js";
 import { processScheduledReleases } from "./clashEngine.js";
 import { processWeeklyRelationships } from "./relationshipEngine.js";
+import { processWeeklySocialMedia } from "./socialMediaEngine.js";
 
 import { addNotification } from "../helpers/notificationHelper.js";
 import { processWriterAging } from "../helpers/agingHelper.js";
@@ -248,7 +249,12 @@ export const processWeeklyTick = async (gameState, studio) => {
 
   // 12. PR & Scandal events — roll for studio scandals and apply
   //     reputation decay (issue #281).
-  processScandals(gameState, studio);
+  await processScandals(gameState, studio);
+
+  // 12b. Social Media Simulation Ecosystem (issue #534)
+  if (gameState.user) {
+    await processWeeklySocialMedia(gameState, studio);
+  }
 
   // 13. Talent Relationship & Chemistry Lifecycle (issue #535)
   if (gameState.user) {

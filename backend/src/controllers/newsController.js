@@ -7,9 +7,9 @@ export const getNews = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const query = {};
-    if (req.query.type) {
-      query.type = req.query.type;
-    }
+    if (req.query.type) query.type = req.query.type;
+    if (req.query.sentiment) query.sentiment = req.query.sentiment;
+    if (req.query.region) query.region = req.query.region;
 
     const total = await NewsItem.countDocuments(query);
     const news = await NewsItem.find(query)
@@ -35,7 +35,7 @@ export const getNews = async (req, res) => {
 
 export const getNewsDetail = async (req, res) => {
   try {
-    const newsItem = await NewsItem.findById(req.params.id);
+    const newsItem = await NewsItem.findById(req.params.id).lean();
     if (!newsItem) {
       return res.status(404).json({ success: false, message: "News article not found" });
     }

@@ -9,11 +9,13 @@ import { processCareerImpact } from "../simulation/engines/careerImpactEngine.js
 import { processStudioGrowth } from "../simulation/engines/studioGrowthEngine.js";
 import { computeFranchiseProgress } from "../simulation/engines/franchiseEngine.js";
 import { addNotification } from "../simulation/helpers/notificationHelper.js";
-import { generateNewsFromRelease } from "../simulation/engines/newsEngine.js";
+import { generateNewsFromRelease, generateNewsFromFranchise } from "../simulation/engines/newsEngine.js";
 import { findScriptById } from "./movieValidationService.js";
 import { computeClashPenalty } from "../simulation/engines/clashEngine.js";
 import { addHistoricRecord } from "../simulation/helpers/historicRecordHelper.js";
 import { calculateMultiMarketRelease } from "../simulation/engines/cinemaMarketEngine.js";
+import SocialMediaAccount from "../../models/SocialMediaAccount.js";
+import { getSocialBoxOfficeMultiplier } from "../simulation/engines/socialMediaEngine.js";
 
 /**
  * Handles the complete release process of a movie (manual or scheduled).
@@ -62,6 +64,9 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
   const marketMultiplier = getGenreMultiplier(activeTrends, script?.genres);
   const demographicMultiplier = getDemographicMultiplier(script?.genres, movie.marketingCampaigns);
 
+  const socialAccounts = await SocialMediaAccount.find({ userId: gameState.user }).lean();
+  const socialMultiplier = getSocialBoxOfficeMultiplier(socialAccounts);
+
   let boxOffice;
   if (movie.targetMarkets?.length > 0) {
     const marketResult = calculateMultiMarketRelease(
@@ -84,6 +89,14 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
     );
   }
   Object.assign(movie, boxOffice);
+
+  if (socialMultiplier !== 1) {
+    movie.openingWeekend = Math.round(movie.openingWeekend * socialMultiplier);
+    movie.worldwideGross = Math.round(movie.worldwideGross * socialMultiplier);
+    movie.domesticGross = Math.round(movie.domesticGross * socialMultiplier);
+    movie.internationalGross = Math.round(movie.internationalGross * socialMultiplier);
+    movie.boxOffice = movie.worldwideGross;
+  }
 
   // Apply clash penalty
   const clash = computeClashPenalty(gameState, movie);
@@ -152,6 +165,10 @@ export const performMovieRelease = async (movie, studio, gameState, session = nu
 
   // Generate news article for the release
   await generateNewsFromRelease(movie, studio, gameState.currentWeek);
+
+  if (franchiseDoc) {
+    await generateNewsFromFranchise(movie, studio, franchiseDoc, gameState.currentWeek);
+  }
 
   // Add to historic records
   try {
