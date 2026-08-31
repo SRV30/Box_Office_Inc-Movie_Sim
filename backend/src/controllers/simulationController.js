@@ -12,6 +12,8 @@ import MarketDirector from "../models/MarketDirector.js";
 import MarketActor from "../models/MarketActor.js";
 import MarketCrewTeam from "../models/MarketCrewTeam.js";
 import PastAward from "../models/PastAward.js";
+import StreamingRights from "../models/StreamingRights.js";
+import StreamingAuction from "../models/StreamingAuction.js";
 import SocialMediaAccount from "../models/SocialMediaAccount.js";
 import SocialMediaEvent from "../models/SocialMediaEvent.js";
 import { generateDirectors } from "../services/director/directorGenerator.js";
@@ -273,6 +275,9 @@ export const resetGame = async (req, res) => {
       await MarketDirector.deleteMany({ userId: req.user._id }, { session });
       await MarketActor.deleteMany({ userId: req.user._id }, { session });
       await MarketCrewTeam.deleteMany({ userId: req.user._id }, { session });
+
+      await StreamingRights.deleteMany({ studioId: studio._id }, { session });
+      await StreamingAuction.deleteMany({ studioId: studio._id }, { session });
 
       // Clear social media data (issue #534)
       await SocialMediaAccount.deleteMany({ userId: req.user._id }, { session });

@@ -15,6 +15,7 @@ import { processMerchandiseSales } from "./merchandiseEngine.js";
 import { processAnnualAwards } from "./awardsEngine.js";
 import { generateNewsFromTrend, generateNewsFromEvent } from "./newsEngine.js";
 import { processStreamingPlatformGrowth, processStreamingRevenue } from "./streamingEngine.js";
+import { processWeeklyStreamingWars } from "./streamingWarsEngine.js";
 import { processLoanRepayments } from "./loanRepaymentEngine.js";
 import { processFanClubTick } from "./fanClubEngine.js";
 import { processUnionSatisfaction } from "./unionEngine.js";
@@ -238,6 +239,9 @@ export const processWeeklyTick = async (gameState, studio) => {
 
   await processMerchandiseSales(gameState, studio);
   await processStreamingPlatformGrowth(gameState);
+
+  // OTT streaming wars: subscriber competition, rights expiry, platform budgets (issue #546)
+  await processWeeklyStreamingWars(gameState, studio);
 
   if (gameState.currentWeek > 0 && gameState.currentWeek % 52 === 0) {
     await processAnnualAwards(gameState, studio);

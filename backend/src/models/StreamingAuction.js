@@ -41,10 +41,25 @@ const streamingAuctionSchema = new mongoose.Schema(
     bids: [
       {
         platform: { type: String, required: true },
+        platformId: { type: String, default: "" },
         amount: { type: Number, required: true },
+        prestige: { type: Number, default: 0 },
+        isAI: { type: Boolean, default: true },
         createdAt: { type: Date, default: Date.now },
       },
     ],
+    counteroffers: [
+      {
+        platform: { type: String, required: true },
+        platformId: { type: String, default: "" },
+        amount: { type: Number, required: true },
+        isAI: { type: Boolean, default: true },
+        week: { type: Number, default: 0 },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    exclusiveWeeks: { type: Number, default: 52 },
+    contentType: { type: String, enum: ["MOVIE", "TV"], default: "MOVIE" },
   },
   { timestamps: true }
 );

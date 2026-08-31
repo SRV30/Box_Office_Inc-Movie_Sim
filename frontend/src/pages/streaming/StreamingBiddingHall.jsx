@@ -6,6 +6,8 @@ import { Gavel, IndianRupee, Trophy, Flame, Plus, CheckCircle, Clock, ShieldAler
 const StreamingBiddingHall = () => {
   const [auctions, setAuctions] = useState([]);
   const [movies, setMovies] = useState([]);
+  const [platforms, setPlatforms] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [executingId, setExecutingId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -24,9 +26,11 @@ const StreamingBiddingHall = () => {
     try {
       setLoading(true);
       setError(null);
-      const [auctionsRes, moviesRes] = await Promise.all([
+      const [auctionsRes, moviesRes, platformsRes, analyticsRes] = await Promise.all([
         api.get("/streaming-auctions/auctions"),
         api.get("/movies/library"),
+        api.get("/streaming-auctions/platforms"),
+        api.get("/streaming-auctions/analytics"),
       ]);
 
       if (auctionsRes.data?.success) {
@@ -34,6 +38,12 @@ const StreamingBiddingHall = () => {
       }
       if (moviesRes.data?.movies) {
         setMovies(moviesRes.data.movies || []);
+      }
+      if (platformsRes.data?.success) {
+        setPlatforms(platformsRes.data.platforms || []);
+      }
+      if (analyticsRes.data?.success) {
+        setAnalytics(analyticsRes.data.analytics);
       }
     } catch (err) {
       console.error("Failed to load auctions data:", err);
@@ -86,7 +96,7 @@ const StreamingBiddingHall = () => {
               <Gavel className="text-amber-400" size={36} /> Streaming Rights Bidding Hall
             </h1>
             <p className="text-slate-400 mt-2">
-              Launch competitive platform bidding wars between NetCinema, StreamMax, CineStream, and PrimePlay for post-theatrical and exclusive SVOD licensing.
+              Competitive OTT bidding wars — exclusive rights, counteroffers, subscriber competition, and platform prestige.
             </p>
           </div>
 
@@ -97,6 +107,40 @@ const StreamingBiddingHall = () => {
             <Plus size={20} /> Launch New Auction
           </button>
         </div>
+
+        {analytics && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <p className="text-2xl font-bold text-white">{analytics.openAuctions}</p>
+              <p className="text-xs text-slate-400 uppercase">Open Auctions</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <p className="text-2xl font-bold text-emerald-400">{analytics.activeRights}</p>
+              <p className="text-xs text-slate-400 uppercase">Active Rights</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <p className="text-2xl font-bold text-white">{analytics.completedAuctions}</p>
+              <p className="text-xs text-slate-400 uppercase">Completed Deals</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <p className="text-2xl font-bold text-amber-400">₹{(analytics.totalBidRevenue / 10000000).toFixed(1)}Cr</p>
+              <p className="text-xs text-slate-400 uppercase">Total Bid Revenue</p>
+            </div>
+          </div>
+        )}
+
+        {platforms.length > 0 && (
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {platforms.map((p) => (
+              <div key={p.id} className="p-4 rounded-xl bg-slate-900 border border-slate-800">
+                <p className="text-white font-bold text-sm">{p.name}</p>
+                <p className="text-xs text-slate-500 mt-1">{(p.subscribers / 1000000).toFixed(0)}M subs</p>
+                <p className="text-xs text-slate-500">Prestige: {p.prestige ?? p.popularity}</p>
+                <p className="text-xs text-emerald-400">{p.exclusiveCount ?? p.exclusiveMovies?.length ?? 0} exclusives</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Modal: Create Auction */}
         {showCreateModal && (

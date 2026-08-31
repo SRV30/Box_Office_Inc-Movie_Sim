@@ -14,7 +14,7 @@ describe("Streaming Auction Engine Unit Tests", () => {
 
     const bids = calculatePlatformBids(movie, "EXCLUSIVE_DAY_DATE", 500000);
 
-    assert.strictEqual(bids.length, 4, "Should generate bids for 4 platforms");
+    assert.ok(bids.length >= 5, "Should generate bids for all OTT platforms");
     assert.ok(bids[0].amount >= bids[1].amount, "Bids array should be sorted descending");
     assert.ok(bids[0].amount >= 500000, "Winning bid should meet asking price");
   });

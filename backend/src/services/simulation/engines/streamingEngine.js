@@ -1,15 +1,20 @@
 import GameState from "../../../models/GameState.js";
 import Movie from "../../../models/Movie.js";
 import { addNotification } from "../helpers/notificationHelper.js";
+import { OTT_PLATFORMS } from "../../../constants/streamingWars.js";
 
 // Initialize default streaming platforms if they don't exist
 export const initializeStreamingPlatforms = async (gameState) => {
   if (!gameState.streamingPlatforms || gameState.streamingPlatforms.length === 0) {
-    gameState.streamingPlatforms = [
-      { id: "flixstream", name: "FlixStream", popularity: 80, contentBudget: 1000000000, subscribers: 50000000, exclusiveMovies: [] },
-      { id: "primescreen", name: "PrimeScreen", popularity: 60, contentBudget: 2000000000, subscribers: 40000000, exclusiveMovies: [] },
-      { id: "cinemax", name: "CineMax+", popularity: 40, contentBudget: 500000000, subscribers: 20000000, exclusiveMovies: [] }
-    ];
+    gameState.streamingPlatforms = Object.values(OTT_PLATFORMS).map((p) => ({
+      id: p.id,
+      name: p.name,
+      popularity: p.prestige,
+      prestige: p.prestige,
+      contentBudget: p.contentBudget,
+      subscribers: p.subscribers,
+      exclusiveMovies: [],
+    }));
   }
 };
 
