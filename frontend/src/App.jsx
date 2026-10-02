@@ -5,6 +5,7 @@ import Register from "./pages/auth/Register";
 import Login from "./pages/auth/Login";
 
 import Dashboard from "./pages/dashboard/Dashboard";
+import SimulationAnalyticsDashboard from "./pages/analytics/SimulationAnalyticsDashboard";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Scripts from "./pages/scripts/Scripts";
@@ -128,6 +129,14 @@ function App() {
         />
         <Route
           path="/analytics"
+          element={
+            <ProtectedRoute>
+              <SimulationAnalyticsDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
           element={
             <ProtectedRoute>
               <SimulationAnalyticsDashboard />

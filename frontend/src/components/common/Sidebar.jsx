@@ -5,6 +5,7 @@ import {
   Building2,
   TrendingUp,
   FileBarChart,
+  FileText,
   Pen,
   Bell,
   ShieldCheck,
@@ -20,6 +21,7 @@ import {
   AlertTriangle,
   Tv,
   Share2,
+  Globe,
 } from "lucide-react";
 
 import { Link, useLocation } from "react-router-dom";
