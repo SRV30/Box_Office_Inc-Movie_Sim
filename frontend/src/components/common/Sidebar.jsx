@@ -233,6 +233,16 @@ const Sidebar = ({ isOpen, onClose }) => {
     },
   ];
 
+  const activeMenuPath = menuItems.reduce((activePath, item) => {
+    const matchesPath =
+      location.pathname === item.path ||
+      (item.path !== "/" && location.pathname.startsWith(`${item.path}/`));
+
+    return matchesPath && item.path.length > (activePath?.length ?? -1)
+      ? item.path
+      : activePath;
+  }, null);
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -265,7 +275,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           {menuItems.map((item) => {
             const Icon = item.icon;
 
-            const active = location.pathname === item.path;
+            const active = activeMenuPath === item.path;
 
             return (
               <Link
