@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.5",
-    "@reduxjs/toolkit": "^2.12.0",
+    "@reduxjs/toolkit": "^2.13.0",
     "@tailwindcss/vite": "^4.3.0",
     "axios": "^1.16.1",
     "lucide-react": "^1.34.0",
