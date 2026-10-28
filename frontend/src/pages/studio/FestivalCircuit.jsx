@@ -3,6 +3,8 @@ import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { Award, Film, Plus, Sparkles, DollarSign, Star, Trophy, Trash2, CheckCircle2 } from "lucide-react";
 
+const formatCurrency = (amount) => `₹${(Number(amount || 0) / 100000).toFixed(1)}L`;
+
 const FESTIVAL_ROSTER = [
   { name: "CANNES", label: "Cannes Film Festival", fee: 500000, prestige: "A-List International", reward: "Palme d'Or / Grand Prix" },
   { name: "VENICE", label: "Venice International Film Festival", fee: 400000, prestige: "A-List International", reward: "Golden Lion" },
@@ -83,6 +85,18 @@ const FestivalCircuit = () => {
       }
     } catch (err) {
       setActionMessage(err.response?.data?.message || "Failed to withdraw submission.");
+    }
+  };
+
+  const handleAcceptDeal = async (submissionId, distributor, amount) => {
+    try {
+      const res = await api.post("/festivals/accept-deal", { submissionId, distributor, amount });
+      if (res.data?.success) {
+        setActionMessage(res.data.message || "Distribution deal signed successfully.");
+        await fetchSubmissionsAndMovies();
+      }
+    } catch (err) {
+      setActionMessage(err.response?.data?.message || "Failed to sign distribution deal.");
     }
   };
 
@@ -174,12 +188,71 @@ const FestivalCircuit = () => {
                   <div className="col-span-2">
                     <span className="text-[11px] text-slate-400 block font-semibold">Distributor Acquisition Offer</span>
                     <span className="text-base font-black text-emerald-400">
-                      {sub.marketDistributionOffer > 0
-                        ? `₹${(sub.marketDistributionOffer / 100000).toFixed(1)} Lakhs`
-                        : "No Acquisition Offer"}
+                      {sub.marketDistributionOffer > 0 ? formatCurrency(sub.marketDistributionOffer) : "No Acquisition Offer"}
                     </span>
                   </div>
                 </div>
+
+                {sub.deliberation?.pillars && (
+                  <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-wider text-slate-400">
+                      <span>Jury Deliberation</span>
+                      <span className="text-amber-300">{sub.deliberation.totalScore}/100</span>
+                    </div>
+                    {Object.entries(sub.deliberation.pillars).map(([key, value]) => (
+                      <div key={key}>
+                        <div className="flex justify-between text-[11px] text-slate-300 mb-1 capitalize">
+                          <span>{key.replace(/([A-Z])/g, " $1")}</span>
+                          <span>{Number(value).toFixed(1)}</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-300" style={{ width: `${value}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                    {sub.juryConsensusQuote && (
+                      <p className="text-xs italic text-slate-300 mt-2 border-l border-amber-500/60 pl-3">
+                        “{sub.juryConsensusQuote}”
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {sub.standingOvation?.durationSeconds && (
+                  <div className="flex items-center justify-between rounded-xl border border-amber-900 bg-amber-950/40 px-3 py-2 text-xs text-amber-200">
+                    <span>Standing ovation</span>
+                    <span className="font-bold">{sub.standingOvation.durationSeconds}s</span>
+                  </div>
+                )}
+
+                {sub.distributorBids?.length > 0 && (
+                  <div className="space-y-3 rounded-2xl border border-emerald-900 bg-emerald-950/30 p-4">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-wider text-emerald-200">
+                      <span>Distributor Bids</span>
+                      <span>{sub.distributorBids.length}</span>
+                    </div>
+                    {sub.distributorBids.slice(0, 3).map((bid) => (
+                      <div key={`${bid.distributor}-${bid.amount}`} className="flex items-center justify-between gap-2 rounded-xl bg-slate-900/80 p-2.5">
+                        <div>
+                          <div className="text-xs font-bold text-white">{bid.distributor}</div>
+                          <div className="text-[10px] text-slate-400">Advance {formatCurrency(bid.advance)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-black text-emerald-300">{formatCurrency(bid.amount)}</div>
+                          {sub.status !== "SIGNED" && (
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptDeal(sub._id, bid.distributor, bid.amount)}
+                              className="mt-1 text-[10px] font-bold text-amber-300 hover:text-white"
+                            >
+                              Sign deal
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {sub.status === "SUBMITTED" && (
                   <button

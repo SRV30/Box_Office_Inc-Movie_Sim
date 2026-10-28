@@ -32,12 +32,12 @@ const festivalSubmissionSchema = new mongoose.Schema(
     },
     awardWon: {
       type: String,
-      enum: ["PALME_D_OR", "GRAND_PRIX", "AUDIENCE_AWARD", "GOLDEN_LION", "NONE"],
+      enum: ["PALME_D_OR", "GRAND_PRIX", "AUDIENCE_AWARD", "GOLDEN_LION", "GRAND_JURY_PRIZE", "PEOPLES_CHOICE", "NONE"],
       default: "NONE",
     },
     status: {
       type: String,
-      enum: ["SUBMITTED", "ACCEPTED", "AWARDED", "REJECTED", "WITHDRAWN"],
+      enum: ["SUBMITTED", "ACCEPTED", "AWARDED", "REJECTED", "WITHDRAWN", "SIGNED"],
       default: "SUBMITTED",
     },
     prestigeTier: {
@@ -52,6 +52,35 @@ const festivalSubmissionSchema = new mongoose.Schema(
     criticHypeBoost: {
       type: Number,
       default: 1.0,
+    },
+    deliberation: {
+      type: Object,
+      default: {},
+    },
+    standingOvation: {
+      type: Object,
+      default: {},
+    },
+    distributorBids: [
+      {
+        distributor: { type: String, default: "" },
+        amount: { type: Number, default: 0 },
+        advance: { type: Number, default: 0 },
+        note: { type: String, default: "" },
+        status: { type: String, default: "PENDING" },
+        festival: { type: String, default: "" },
+      },
+    ],
+    signedDeal: {
+      distributor: { type: String, default: "" },
+      amount: { type: Number, default: 0 },
+      advance: { type: Number, default: 0 },
+      note: { type: String, default: "" },
+      signedAt: { type: Date, default: null },
+    },
+    juryConsensusQuote: {
+      type: String,
+      default: "",
     },
   },
   {

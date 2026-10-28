@@ -16,3 +16,11 @@ export const validateFestivalWithdrawSchema = {
     submissionId: z.string().min(1, "submissionId is required"),
   }),
 };
+
+export const validateFestivalDealSchema = {
+  body: z.object({
+    submissionId: z.string().min(1, "submissionId is required"),
+    distributor: z.string().min(1, "distributor is required"),
+    amount: z.number().min(1, "amount is required"),
+  }),
+};

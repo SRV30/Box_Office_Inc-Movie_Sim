@@ -1,6 +1,16 @@
 import FestivalSubmission from "../models/FestivalSubmission.js";
 import Movie from "../models/Movie.js";
-import { calculateFestivalJuryScore, calculatePrestigeHypeBoost, calculateMarketDistributionOffer } from "../services/simulation/engines/festivalEngine.js";
+import Studio from "../models/Studio.js";
+import {
+  calculateFestivalJuryScore,
+  calculatePrestigeHypeBoost,
+  calculateMarketDistributionOffer,
+} from "../services/simulation/engines/festivalEngine.js";
+import {
+  generateFestivalDeliberation,
+  generateDistributorBids,
+  getFestivalProfile,
+} from "../services/festival/festivalJuryEngine.js";
 
 /**
  * POST /api/festivals/submit
@@ -15,18 +25,19 @@ export const submitToFestival = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Movie not found" });
     }
 
-    const entryFees = { CANNES: 500000, SUNDANCE: 250000, VENICE: 400000, TIFF: 300000 };
-    const fee = entryFees[festivalName] || 250000;
+    const profile = getFestivalProfile(festivalName);
+    const fee = profile.entryFee || 250000;
 
     const juryScore = calculateFestivalJuryScore(movie, festivalName);
-    let awardWon = "NONE";
-    let status = "ACCEPTED";
+    const deliberation = generateFestivalDeliberation(movie, festivalName);
+    const distributorBids = generateDistributorBids(movie, festivalName, juryScore);
 
-    if (juryScore >= 85) {
+    let awardWon = "NONE";
+    let status = deliberation.totalScore >= 65 ? "ACCEPTED" : "REJECTED";
+
+    if (deliberation.totalScore >= 85) {
       status = "AWARDED";
-      awardWon = festivalName === "CANNES" ? "PALME_D_OR" : "GRAND_PRIX";
-    } else if (juryScore < 50) {
-      status = "REJECTED";
+      awardWon = profile.topAward;
     }
 
     const criticHypeBoost = calculatePrestigeHypeBoost(awardWon);
@@ -42,6 +53,15 @@ export const submitToFestival = async (req, res, next) => {
       status,
       criticHypeBoost,
       marketDistributionOffer,
+      deliberation: {
+        pillars: deliberation.pillars,
+        totalScore: deliberation.totalScore,
+        standingOvation: deliberation.standingOvation,
+        juryConsensusQuote: deliberation.juryConsensusQuote,
+      },
+      standingOvation: deliberation.standingOvation,
+      distributorBids,
+      juryConsensusQuote: deliberation.juryConsensusQuote,
     });
 
     return res.status(201).json({
@@ -59,10 +79,25 @@ export const submitToFestival = async (req, res, next) => {
  */
 export const getActiveSubmissions = async (req, res, next) => {
   try {
-    const submissions = await FestivalSubmission.find({ userId: req.user._id }).populate("movieId", "title quality criticScore");
+    const submissions = await FestivalSubmission.find({ userId: req.user._id }).populate("movieId", "title quality criticScore audienceScore hype budget");
     return res.status(200).json({
       success: true,
       data: submissions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getFestivalLaurels = async (req, res, next) => {
+  try {
+    const laurels = await FestivalSubmission.find({ userId: req.user._id, awardWon: { $ne: "NONE" } })
+      .populate("movieId", "title budget")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: laurels,
     });
   } catch (error) {
     next(error);
@@ -88,6 +123,50 @@ export const withdrawSubmission = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: "Submission withdrawn successfully",
+      data: submission,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const acceptDistributionDeal = async (req, res, next) => {
+  try {
+    const { submissionId, distributor, amount } = req.body;
+
+    const submission = await FestivalSubmission.findOne({ _id: submissionId, userId: req.user._id });
+    if (!submission) {
+      return res.status(404).json({ success: false, message: "Festival submission not found" });
+    }
+
+    const chosenBid = submission.distributorBids?.find((bid) => bid.distributor === distributor && bid.amount === amount);
+    if (!chosenBid) {
+      return res.status(400).json({ success: false, message: "Distribution bid not found or no longer available" });
+    }
+
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    chosenBid.status = "SIGNED";
+    submission.status = "SIGNED";
+    submission.signedDeal = {
+      distributor: chosenBid.distributor,
+      amount: chosenBid.amount,
+      advance: chosenBid.advance,
+      note: chosenBid.note,
+      signedAt: new Date(),
+    };
+    submission.marketDistributionOffer = chosenBid.amount;
+
+    studio.money = (studio.money || 0) + (chosenBid.advance || chosenBid.amount);
+    await submission.save();
+    await studio.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `${distributor} distribution deal signed. Advance credited to studio treasury.`,
       data: submission,
     });
   } catch (error) {
