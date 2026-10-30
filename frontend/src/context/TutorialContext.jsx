@@ -7,6 +7,7 @@ export const TutorialProvider = ({ children }) => {
   const [tutorialState, setTutorialState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const fetchTutorialState = async () => {
     try {
@@ -87,6 +88,8 @@ export const TutorialProvider = ({ children }) => {
         loading,
         isOverlayOpen,
         setIsOverlayOpen,
+        isDrawerOpen,
+        setIsDrawerOpen,
         advanceStep,
         skipTutorial,
         replayTutorial,
