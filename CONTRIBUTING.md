@@ -126,3 +126,44 @@ Request review from the project maintainers and respond constructively to feedba
 If you are unsure about scope or setup, ask in the relevant issue before investing in a large change.
 
 Thank you for contributing to Box Office Inc - Movie Studio Simulator.
+
+
+## Running Backend Tests
+
+The backend test suite uses Node's native test runner (`node:test` and `node:assert`).
+
+### Prerequisites
+Ensure backend dependencies are installed:
+```bash
+cd backend
+npm install
+```
+
+### Run the Full Backend Test Suite
+Run the test suite with Node's automated test discovery:
+```bash
+cd backend
+npm test
+```
+Or from the repository root:
+```bash
+npm test --prefix backend
+```
+
+### Run Core Movie Simulation Unit Tests
+To run the unit tests for core calculations (box office revenue, review ratings, weekly payroll):
+```bash
+# From the backend directory:
+node --test tests/coreMovieCalculations.test.js
+
+# Or from the repository root:
+node --test backend/tests/coreMovieCalculations.test.js
+```
+
+### Run Specific Test Files
+You can target any specific test file directly:
+```bash
+# From the repository root:
+node --test backend/tests/boxOfficeEngine.test.js
+node --test backend/tests/engines.test.js
+```
