@@ -1,7 +1,13 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
-import { Check, X, Scale, Star, Award, TrendingUp, IndianRupee } from "lucide-react";
+import { getMoviePerformanceReports } from "../../api/analyticsApi";
+import { Scale, Star, Award, TrendingUp, IndianRupee, Activity } from "lucide-react";
+
+const STATUS_COLORS = {
+  PROFITABLE: "text-emerald-400",
+  LOSS: "text-rose-400",
+  BREAK_EVEN: "text-slate-300",
+};
 
 const MovieComparison = () => {
   const [movies, setMovies] = useState([]);
@@ -11,8 +17,8 @@ const MovieComparison = () => {
   const fetchMovies = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get("/movies/released");
-      setMovies(res.data.movies || []);
+      const response = await getMoviePerformanceReports({ limit: 100 });
+      setMovies(response.data.movies || []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -64,7 +70,7 @@ const MovieComparison = () => {
                         </button>
                     );
                 })}
-                {movies.length === 0 && <div className="text-slate-600 italic py-2">No released movies found.</div>}
+                {movies.length === 0 && <div className="text-slate-600 italic py-2">{loading ? "Loading released movies..." : "No released movies found."}</div>}
             </div>
         </div>
 
@@ -85,16 +91,28 @@ const MovieComparison = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-800/50 text-slate-300">
                         <tr>
-                            <td className="p-8 font-bold flex items-center gap-2"><IndianRupee size={16} className="text-green-500" /> Total Budget</td>
-                            {comparisonData.map(m => <td key={m._id} className="p-8 font-bold">₹{((m.budget || 0) + (m.marketingBudget || 0)).toLocaleString()}</td>)}
+                            <td className="p-8 font-bold flex items-center gap-2"><IndianRupee size={16} className="text-green-500" /> Production Expenses</td>
+                            {comparisonData.map(m => <td key={m._id} className="p-8 font-bold">₹{m.productionExpenses?.toLocaleString()}</td>)}
                         </tr>
                         <tr>
-                            <td className="p-8 font-bold flex items-center gap-2"><TrendingUp size={16} className="text-blue-500" /> Revenue</td>
-                            {comparisonData.map(m => <td key={m._id} className="p-8 font-bold text-white">₹{m.worldwideGross?.toLocaleString()}</td>)}
+                            <td className="p-8 font-bold flex items-center gap-2"><IndianRupee size={16} className="text-amber-500" /> Marketing Expenses</td>
+                            {comparisonData.map(m => <td key={m._id} className="p-8 font-bold">₹{m.marketingExpenses?.toLocaleString()}</td>)}
+                        </tr>
+                        <tr>
+                            <td className="p-8 font-bold flex items-center gap-2"><IndianRupee size={16} className="text-rose-500" /> Total Expenses</td>
+                            {comparisonData.map(m => <td key={m._id} className="p-8 font-bold text-white">₹{m.actualCost?.toLocaleString()}</td>)}
+                        </tr>
+                        <tr>
+                            <td className="p-8 font-bold flex items-center gap-2"><TrendingUp size={16} className="text-blue-500" /> Total Revenue</td>
+                            {comparisonData.map(m => <td key={m._id} className="p-8 font-bold text-white">₹{m.totalRevenue?.toLocaleString()}</td>)}
                         </tr>
                         <tr>
                             <td className="p-8 font-bold flex items-center gap-2"><Scale size={16} className="text-purple-500" /> ROI %</td>
-                            {comparisonData.map(m => <td key={m._id} className="p-8 font-black text-green-500">{(m.roi * 100).toFixed(1)}%</td>)}
+                            {comparisonData.map(m => <td key={m._id} className={`p-8 font-black ${STATUS_COLORS[m.profitabilityStatus] || "text-slate-300"}`}>{Number(m.roi || 0).toFixed(1)}%</td>)}
+                        </tr>
+                        <tr>
+                            <td className="p-8 font-bold flex items-center gap-2"><Activity size={16} className="text-cyan-500" /> Profitability</td>
+                            {comparisonData.map(m => <td key={m._id} className={`p-8 font-black uppercase tracking-wide ${STATUS_COLORS[m.profitabilityStatus] || "text-slate-300"}`}>{m.profitabilityLabel || "Break-even"}</td>)}
                         </tr>
                         <tr>
                             <td className="p-8 font-bold flex items-center gap-2"><Award size={16} className="text-violet-500" /> Critic Score</td>
@@ -105,8 +123,8 @@ const MovieComparison = () => {
                             {comparisonData.map(m => <td key={m._id} className="p-8 font-bold">{m.audienceScore} ({m.audienceLabel})</td>)}
                         </tr>
                         <tr>
-                            <td className="p-8 font-bold flex items-center gap-2"><TrendingUp size={16} className="text-emerald-500" /> Final Profit</td>
-                            {comparisonData.map(m => <td key={m._id} className={`p-8 font-black text-2xl ${m.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>₹{m.profit?.toLocaleString()}</td>)}
+                            <td className="p-8 font-bold flex items-center gap-2"><TrendingUp size={16} className="text-emerald-500" /> Net Profit</td>
+                            {comparisonData.map(m => <td key={m._id} className={`p-8 font-black text-2xl ${m.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>₹{m.netProfit?.toLocaleString()}</td>)}
                         </tr>
                     </tbody>
                 </table>

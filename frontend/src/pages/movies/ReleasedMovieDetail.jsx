@@ -2,22 +2,44 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
-import { Film, Calendar, Users, Briefcase, IndianRupee, Clock, ArrowLeft, Star, TrendingUp, Award } from "lucide-react";
+import MovieProfitabilityPanel from "../../components/movies/MovieProfitabilityPanel";
+import { getMovieProfitability } from "../../api/analyticsApi";
+import { Calendar, Users, IndianRupee, ArrowLeft, Star, TrendingUp, Award } from "lucide-react";
 
 const ReleasedMovieDetail = () => {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
+  const [profitability, setProfitability] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profitabilityLoading, setProfitabilityLoading] = useState(true);
+  const [profitabilityError, setProfitabilityError] = useState("");
 
   const fetchMovieDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/movies/${id}`);
+      setProfitabilityLoading(true);
+      setProfitabilityError("");
+
+      const profitabilityRequest = getMovieProfitability(id)
+        .then((response) => response.data.profitability)
+        .catch((error) => {
+          console.error(error);
+          setProfitabilityError(error?.message || "Unable to load profitability analytics.");
+          return null;
+        });
+
+      const [res, profitabilityResult] = await Promise.all([
+        api.get(`/movies/${id}`),
+        profitabilityRequest,
+      ]);
+
       setMovie(res.data.movie);
+      setProfitability(profitabilityResult);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+      setProfitabilityLoading(false);
     }
   }, [id]);
 
@@ -40,6 +62,10 @@ const ReleasedMovieDetail = () => {
         default: return 'bg-slate-700';
     }
   }
+
+  const displayProfit = profitability?.netProfit
+    ?? ((movie.profit || 0) + (movie.merchandiseRevenue || 0));
+  const displayRoi = profitability?.roiPercent ?? (movie.roi || 0) * 100;
 
   return (
     <DashboardLayout>
@@ -64,9 +90,9 @@ const ReleasedMovieDetail = () => {
             </div>
           </div>
           <div className="bg-[#111827] border border-slate-800 p-6 rounded-3xl text-right min-w-[250px]">
-            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Total Profit</div>
-            <div className={`text-4xl font-black ${(movie.profit + (movie.merchandiseRevenue || 0)) >= 0 ? 'text-green-500' : 'text-red-500'}`}>₹{(movie.profit + (movie.merchandiseRevenue || 0))?.toLocaleString()}</div>
-            <div className="text-slate-450 text-sm font-bold mt-1">{(movie.roi * 100).toFixed(1)}% ROI</div>
+            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Net Profit</div>
+            <div className={`text-4xl font-black ${displayProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>₹{displayProfit?.toLocaleString()}</div>
+            <div className="text-slate-450 text-sm font-bold mt-1">{Number(displayRoi || 0).toFixed(1)}% ROI</div>
             <Link to={`/awards/lobbying/${id}`} className="mt-4 block w-full bg-violet-650 hover:bg-violet-700 text-white font-bold py-2 rounded-xl text-center text-xs transition">
               Launch Awards Campaign
             </Link>
@@ -159,16 +185,22 @@ const ReleasedMovieDetail = () => {
                         </h3>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-slate-500 text-sm">Production Budget</span>
-                                <span className="text-white font-bold">₹{movie.budget?.toLocaleString()}</span>
+                                <span className="text-slate-500 text-sm">Production Expenses</span>
+                                <span className="text-white font-bold">₹{(profitability?.expenses.production ?? movie.budget)?.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-slate-500 text-sm">Marketing Budget</span>
-                                <span className="text-white font-bold">₹{movie.marketingBudget?.toLocaleString()}</span>
+                                <span className="text-slate-500 text-sm">Marketing Expenses</span>
+                                <span className="text-white font-bold">₹{(profitability?.expenses.marketing ?? movie.marketingBudget)?.toLocaleString()}</span>
                             </div>
+                            {(profitability?.expenses.localization || 0) > 0 && (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 text-sm">Localization & Distribution</span>
+                                    <span className="text-white font-bold">₹{profitability.expenses.localization.toLocaleString()}</span>
+                                </div>
+                            )}
                             <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
                                 <span className="text-slate-400 font-bold uppercase text-xs">Total Spent</span>
-                                <span className="text-white font-black">₹{((movie.budget || 0) + (movie.marketingBudget || 0)).toLocaleString()}</span>
+                                <span className="text-white font-black">₹{(profitability?.expenses.total ?? ((movie.budget || 0) + (movie.marketingBudget || 0)))?.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
@@ -188,6 +220,13 @@ const ReleasedMovieDetail = () => {
                 </div>
             </div>
         </div>
+
+        <MovieProfitabilityPanel
+          profitability={profitability}
+          loading={profitabilityLoading}
+          error={profitabilityError}
+          onRetry={fetchMovieDetails}
+        />
       </div>
     </DashboardLayout>
   );
