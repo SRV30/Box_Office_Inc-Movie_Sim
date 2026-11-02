@@ -32,6 +32,77 @@
 | POST | `/api/movies/:id/release` | JWT | Release a movie that is ready |
 | GET | `/api/movies/:id/tracking` | JWT | Get box office analyst projections |
 
+## Analytics (`/api/analytics`)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/analytics/financials` | JWT | Get studio financial history and runway |
+| GET | `/api/analytics/movies` | JWT | Get released movie performance reports |
+| GET | `/api/analytics/movies/:movieId/profitability` | JWT | Get canonical movie-level profitability |
+| GET | `/api/analytics/genres` | JWT | Get genre performance trends |
+| GET | `/api/analytics/talent` | JWT | Get talent career trajectories |
+| GET | `/api/analytics/rivals` | JWT | Compare the player studio with rivals |
+
+### Movie Profitability (`GET /api/analytics/movies/:movieId/profitability`)
+
+Returns the authenticated studio owner's movie with a canonical revenue,
+expense, net-profit, ROI, and profitability breakdown. Movies owned by another
+studio return `404`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "movie": {
+      "_id": "...",
+      "title": "Galactic Odyssey",
+      "status": "RELEASED",
+      "releaseType": "THEATRICAL"
+    },
+    "profitability": {
+      "currency": "INR",
+      "hasFinancialRecords": true,
+      "revenue": {
+        "boxOffice": 150000000,
+        "merchandise": 10000000,
+        "soundtrack": 5000000,
+        "total": 165000000,
+        "reRelease": 0,
+        "cinemaMarkets": 0
+      },
+      "expenses": {
+        "production": 80000000,
+        "marketing": 20000000,
+        "localization": 0,
+        "total": 100000000,
+        "productionCostSource": "budgetBreakdown"
+      },
+      "netProfit": 65000000,
+      "roiPercent": 65,
+      "profitMargin": 39.39,
+      "profitabilityStatus": "PROFITABLE",
+      "profitabilityLabel": "Profitable"
+    }
+  }
+}
+```
+
+Calculation rules:
+
+- Box office uses `worldwideGross`, falling back to `boxOffice`.
+- Merchandise and soundtrack revenue are added once.
+- Re-release revenue and regional cinema-market gross are already included in
+  box office, so they are reported for reference but not counted again.
+- Production expenses come from `budgetBreakdown` when available, including
+  `soundtrackCost`, and fall back to `budget` for legacy records.
+- Marketing expenses use the larger of `marketingBudget` and
+  `budgetBreakdown.marketingCost` so post-greenlight campaigns are included.
+- Localization/distribution costs from `cinemaMarketRevenue` are added as
+  expenses.
+- `profitabilityStatus` is `PROFITABLE` when net profit is positive, `LOSS` when
+  negative, and `BREAK_EVEN` when revenue equals expenses or no financial
+  records exist.
+
 ## Talent Marketplace
 
 ### Actors (`/api/actors`)
