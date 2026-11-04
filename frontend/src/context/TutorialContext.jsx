@@ -1,15 +1,25 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import api from "../api/axios";
 
 const TutorialContext = createContext(null);
 
 export const TutorialProvider = ({ children }) => {
+  const { token } = useSelector((state) => state.auth);
   const [tutorialState, setTutorialState] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const fetchTutorialState = async () => {
+  const fetchTutorialState = useCallback(async () => {
+    if (!token) {
+      setTutorialState(null);
+      setIsOverlayOpen(false);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await api.get("/tutorial/state");
       if (res.data?.success) {
@@ -19,15 +29,23 @@ export const TutorialProvider = ({ children }) => {
         }
       }
     } catch (err) {
-      console.warn("Tutorial state not available yet", err.message);
+      if (err.status !== 401 && err.status !== 403 && err.status !== 404) {
+        console.warn("Tutorial state not available yet", err.message || err);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
-    fetchTutorialState();
-  }, []);
+    if (token) {
+      fetchTutorialState();
+    } else {
+      setTutorialState(null);
+      setIsOverlayOpen(false);
+      setLoading(false);
+    }
+  }, [token, fetchTutorialState]);
 
   const advanceStep = async (stepId, nextIndex) => {
     try {

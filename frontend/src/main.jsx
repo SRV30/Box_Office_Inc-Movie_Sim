@@ -7,13 +7,26 @@ import { Provider } from "react-redux";
 import { store } from "./app/store";
 import { ThemeProvider } from "./context/ThemeContext";
 
+const rawGoogleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const googleClientId =
+  rawGoogleClientId &&
+  rawGoogleClientId.trim() !== "" &&
+  rawGoogleClientId !== "placeholder-client-id" &&
+  !rawGoogleClientId.includes("placeholder")
+    ? rawGoogleClientId.trim()
+    : null;
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={store}>
       <ThemeProvider>
-        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "placeholder-client-id"}>
+        {googleClientId ? (
+          <GoogleOAuthProvider clientId={googleClientId}>
+            <App />
+          </GoogleOAuthProvider>
+        ) : (
           <App />
-        </GoogleOAuthProvider>
+        )}
       </ThemeProvider>
     </Provider>
   </StrictMode>,

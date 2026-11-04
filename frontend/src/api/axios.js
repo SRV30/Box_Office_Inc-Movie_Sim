@@ -3,16 +3,37 @@ import axios from "axios";
 import { store } from "../app/store";
 import { logout, setCredentials } from "../features/auth/authSlice";
 
-const baseURL = import.meta.env.VITE_BACKEND_API_URL;
+const resolveBaseURL = () => {
+  const envUrl = import.meta.env.VITE_BACKEND_API_URL?.trim();
+  if (envUrl) {
+    const cleaned = envUrl.replace(/\/+$/, "");
+    return cleaned.endsWith("/api") ? cleaned : `${cleaned}/api`;
+  }
+  return "/api";
+};
+
+const baseURL = resolveBaseURL();
 const REFRESH_BUFFER_MS = 60 * 1000;
 const MIN_REFRESH_DELAY_MS = 5 * 1000;
 const REFRESH_RETRY_DELAY_MS = 30 * 1000;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_BASE = 1000;
 
+const cleanDuplicateApiPrefix = (config) => {
+  if (config.url && config.baseURL?.endsWith("/api") && config.url.startsWith("/api/")) {
+    config.url = config.url.replace(/^\/api\//, "/");
+  }
+  return config;
+};
+
 const refreshClient = axios.create({
   baseURL,
   withCredentials: true,
+});
+
+refreshClient.interceptors.request.use((config) => {
+  cleanDuplicateApiPrefix(config);
+  return config;
 });
 
 const api = axios.create({
@@ -29,8 +50,10 @@ const isAuthEndpoint = (url = "") =>
   url.includes("/auth/refresh") ||
   url.includes("/auth/logout");
 
-export const isRefreshSessionRejected = (error) =>
-  error.response?.status === 401 || error.response?.status === 403;
+export const isRefreshSessionRejected = (error) => {
+  const status = error.response?.status;
+  return status === 401 || status === 403 || status === 404;
+};
 
 const decodeAccessTokenExpiresAt = (token) => {
   if (!token) return null;
@@ -58,14 +81,17 @@ export const clearScheduledRefresh = () => {
 
 const scheduleRefreshRetry = () => {
   clearScheduledRefresh();
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
   refreshTimer = window.setTimeout(() => {
     refreshAuthSession().catch((error) => {
-      console.error(error);
       if (isRefreshSessionRejected(error)) {
         clearScheduledRefresh();
         store.dispatch(logout());
         return;
       }
+      console.error("Scheduled session refresh failed:", error);
       scheduleRefreshRetry();
     });
   }, REFRESH_RETRY_DELAY_MS);
@@ -81,12 +107,12 @@ export const scheduleTokenRefresh = (token, accessTokenExpiresAt) => {
   );
   refreshTimer = window.setTimeout(() => {
     refreshAuthSession().catch((error) => {
-      console.error(error);
       if (isRefreshSessionRejected(error)) {
         clearScheduledRefresh();
         store.dispatch(logout());
         return;
       }
+      console.error("Scheduled session refresh failed:", error);
       scheduleRefreshRetry();
     });
   }, refreshDelay);
@@ -126,8 +152,22 @@ export const refreshAuthSession = async () => {
 
 function normalizeApiError(error) {
   if (error.response) {
+    let message =
+      error.response.data?.message || error.response.data?.error;
+    if (!message) {
+      if (
+        error.response.status === 502 ||
+        error.response.status === 503 ||
+        error.response.status === 504
+      ) {
+        message =
+          "Backend server is unreachable (502 Bad Gateway). Please ensure the backend server is running on port 5000.";
+      } else {
+        message = "Something went wrong.";
+      }
+    }
     return {
-      message: error.response.data?.message || error.response.data?.error || "Something went wrong.",
+      message,
       code: error.response.data?.code || "API_ERROR",
       status: error.response.status,
       errors: error.response.data?.errors,
@@ -147,7 +187,8 @@ function normalizeApiError(error) {
   };
 }
 
-function shouldRetry(status) {
+function shouldRetry(status, url = "") {
+  if (isAuthEndpoint(url)) return false;
   if (!status) return true;
   if (status >= 500) return true;
   if (status === 429) return true;
@@ -155,6 +196,7 @@ function shouldRetry(status) {
 }
 
 api.interceptors.request.use((config) => {
+  cleanDuplicateApiPrefix(config);
   const token = localStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -193,7 +235,10 @@ api.interceptors.response.use(
     }
 
     const retryCount = originalRequest._retryCount || 0;
-    if (retryCount < MAX_RETRIES && shouldRetry(error.response?.status)) {
+    if (
+      retryCount < MAX_RETRIES &&
+      shouldRetry(error.response?.status, originalRequest.url)
+    ) {
       originalRequest._retryCount = retryCount + 1;
       const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount);
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -212,7 +257,6 @@ const refreshIfSessionIsNearExpiry = () => {
   if (!token || !expiresAt) return;
   if (expiresAt - Date.now() <= REFRESH_BUFFER_MS) {
     refreshAuthSession().catch((error) => {
-      console.error(error);
       if (isRefreshSessionRejected(error)) {
         clearScheduledRefresh();
         store.dispatch(logout());

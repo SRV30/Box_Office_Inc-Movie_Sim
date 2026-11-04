@@ -12,6 +12,14 @@ import AuthLayout from '../../layouts/AuthLayout';
 import AuthCard from '../../components/common/AuthCard';
 import AuthInput from '../../components/common/AuthInput';
 
+const rawGoogleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const isGoogleAuthEnabled = Boolean(
+  rawGoogleClientId &&
+    rawGoogleClientId.trim() !== '' &&
+    rawGoogleClientId !== 'placeholder-client-id' &&
+    !rawGoogleClientId.includes('placeholder'),
+);
+
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -46,21 +54,25 @@ const Login = () => {
     e.preventDefault();
     if (!validate()) return;
 
-    await execute(
-      async () => {
-        const res = await api.post('/auth/login', {
-          email: values.email,
-          password: values.password,
-        });
-        persistAuthSession({
-          user: res.data.user,
-          token: res.data.token,
-          accessTokenExpiresAt: res.data.accessTokenExpiresAt,
-        });
-        navigate('/');
-      },
-      { errorMessage: 'Invalid email or password.' },
-    );
+    try {
+      await execute(
+        async () => {
+          const res = await api.post('/auth/login', {
+            email: values.email,
+            password: values.password,
+          });
+          persistAuthSession({
+            user: res.data.user,
+            token: res.data.token,
+            accessTokenExpiresAt: res.data.accessTokenExpiresAt,
+          });
+          navigate('/');
+        },
+        { errorMessage: 'Invalid email or password.' },
+      );
+    } catch {
+      // Error handled and surfaced via useAsyncAction error state
+    }
   };
 
   // Google Sign-In initial callback handler
@@ -117,49 +129,51 @@ const Login = () => {
   return (
     <AuthLayout>
       <AuthCard title="Welcome Back">
-        <div className="mb-6 flex flex-col items-center">
-          {!requiresStudio ? (
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setGoogleError('Google Login Failed.')}
-              theme="outline"
-            />
-          ) : (
-            <form
-              onSubmit={handleStudioSubmit}
-              className="w-full flex flex-col gap-3 p-4 bg-slate-800 rounded-lg border border-violet-500"
-            >
-              <h3 className="text-white text-sm text-center">
-                Almost there! What should we call your studio?
-              </h3>
-              <input
-                type="text"
-                value={studioName}
-                onChange={(e) => setStudioName(e.target.value)}
-                placeholder="Studio Name"
-                required
-                disabled={isGoogleLoading}
-                className="w-full px-4 py-2 bg-slate-900 text-white rounded-lg border border-slate-700 focus:border-violet-500 outline-none"
+        {isGoogleAuthEnabled && (
+          <div className="mb-6 flex flex-col items-center">
+            {!requiresStudio ? (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setGoogleError('Google Login Failed.')}
+                theme="outline"
               />
-              <button
-                type="submit"
-                disabled={isGoogleLoading || !studioName.trim()}
-                className="w-full bg-violet-600 hover:bg-violet-700 py-2 rounded-lg font-semibold text-white transition disabled:opacity-50"
+            ) : (
+              <form
+                onSubmit={handleStudioSubmit}
+                className="w-full flex flex-col gap-3 p-4 bg-slate-800 rounded-lg border border-violet-500"
               >
-                {isGoogleLoading ? 'Creating...' : 'Finish Account'}
-              </button>
-            </form>
-          )}
+                <h3 className="text-white text-sm text-center">
+                  Almost there! What should we call your studio?
+                </h3>
+                <input
+                  type="text"
+                  value={studioName}
+                  onChange={(e) => setStudioName(e.target.value)}
+                  placeholder="Studio Name"
+                  required
+                  disabled={isGoogleLoading}
+                  className="w-full px-4 py-2 bg-slate-900 text-white rounded-lg border border-slate-700 focus:border-violet-500 outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={isGoogleLoading || !studioName.trim()}
+                  className="w-full bg-violet-600 hover:bg-violet-700 py-2 rounded-lg font-semibold text-white transition disabled:opacity-50"
+                >
+                  {isGoogleLoading ? 'Creating...' : 'Finish Account'}
+                </button>
+              </form>
+            )}
 
-          {googleError && (
-            <p className="text-red-400 text-xs mt-2 text-center">
-              {googleError}
-            </p>
-          )}
-        </div>
+            {googleError && (
+              <p className="text-red-400 text-xs mt-2 text-center">
+                {googleError}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Divider */}
-        {!requiresStudio && (
+        {isGoogleAuthEnabled && !requiresStudio && (
           <div className="flex items-center mb-6">
             <div className="flex-grow border-t border-slate-700"></div>
             <span className="mx-4 text-slate-500 text-sm">OR</span>

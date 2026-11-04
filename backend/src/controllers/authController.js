@@ -232,8 +232,9 @@ export const login = async (req, res) => {
 };
 
 export const refreshSession = async (req, res) => {
+  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+
   try {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
 
     if (!refreshToken) {
       await recordAuthEvent(req, {

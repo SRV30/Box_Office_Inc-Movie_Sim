@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children }) => {
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
   // Guard: wait for studio data to load before rendering child routes
   const [studioLoading, setStudioLoading] = useState(!!token && !studioProfileFetched);
-  const [studioLoaded, setStudioLoaded] = useState(false);
+  const [, setStudioLoaded] = useState(false);
 
   // Reset studio profile fetch flag when token is cleared (logout)
   useEffect(() => {
@@ -39,19 +39,25 @@ const ProtectedRoute = ({ children }) => {
         return;
       }
 
+      if (!localStorage.getItem("token")) {
+        dispatch(logout());
+        setSessionRejected(true);
+        setCheckingSession(false);
+        return;
+      }
+
       try {
         setCheckingSession(true);
         setSessionRecoveryError(false);
         await refreshAuthSession();
       } catch (error) {
-        console.error(error);
-
         if (isRefreshSessionRejected(error)) {
           dispatch(logout());
           setSessionRejected(true);
           return;
         }
 
+        console.error("Session recovery failed:", error);
         setSessionRecoveryError(true);
       } finally {
         if (isMounted) {

@@ -150,3 +150,44 @@ test("GET /api/auth/me rejects a malformed token with 401", async () => {
   });
   assert.strictEqual(res.status, 401);
 });
+
+test("POST /api/auth/refresh returns 401 when refresh token cookie is missing", async () => {
+  const res = await fetch(`${baseUrl}/api/auth/refresh`, {
+    method: "POST",
+  });
+  assert.strictEqual(res.status, 401);
+  const body = await res.json();
+  assert.strictEqual(body.success, false);
+  assert.match(body.message, /Refresh token missing/i);
+});
+
+test("POST /api/auth/refresh succeeds with valid cookie and rotates token", async () => {
+  const regRes = await postJSON("/api/auth/register", validUser());
+  const cookieHeader = regRes.headers.get("set-cookie");
+  assert.ok(cookieHeader, "registration sets refreshToken cookie");
+
+  const res = await fetch(`${baseUrl}/api/auth/refresh`, {
+    method: "POST",
+    headers: {
+      Cookie: cookieHeader.split(";")[0],
+    },
+  });
+
+  assert.strictEqual(res.status, 200);
+  const body = await res.json();
+  assert.strictEqual(body.success, true);
+  assert.ok(body.token, "a refreshed access token is returned");
+  assert.strictEqual(body.user.email, "boss@example.com");
+});
+
+test("POST /api/auth/refresh rejects invalid or forged cookie with 401", async () => {
+  const res = await fetch(`${baseUrl}/api/auth/refresh`, {
+    method: "POST",
+    headers: {
+      Cookie: "refreshToken=forged-invalid-jwt-token",
+    },
+  });
+  assert.strictEqual(res.status, 401);
+  const body = await res.json();
+  assert.strictEqual(body.success, false);
+});
