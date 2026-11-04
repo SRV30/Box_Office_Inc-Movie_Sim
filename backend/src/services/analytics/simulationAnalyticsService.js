@@ -4,6 +4,7 @@ import Studio from "../../models/Studio.js";
 import MarketActor from "../../models/MarketActor.js";
 import MarketDirector from "../../models/MarketDirector.js";
 import RivalStudio from "../../models/RivalStudio.js";
+import { calculateMovieProfitability } from "../../utils/movieProfitability.js";
 
 /**
  * Service for comprehensive studio, movie, talent, and industry analytics.
@@ -137,20 +138,23 @@ export class SimulationAnalyticsService {
     let totalBudget = 0;
     let totalActualCost = 0;
     let totalGross = 0;
+    let totalRevenue = 0;
+    let totalNetProfit = 0;
     let totalHits = 0;
     let totalFlops = 0;
     let highestGrossing = null;
     let highestROI = null;
 
     allReleased.forEach((m) => {
-      const budget = m.budget || 0;
-      const actual = m.totalCost || budget;
-      const gross = m.worldwideGross || m.boxOffice || 0;
-      const roi = m.roi !== undefined ? m.roi : (actual > 0 ? ((gross - actual) / actual) * 100 : 0);
+      const profitability = calculateMovieProfitability(m);
+      const gross = profitability.revenue.boxOffice;
+      const roi = profitability.roiPercent;
 
-      totalBudget += budget;
-      totalActualCost += actual;
+      totalBudget += m.budget || 0;
+      totalActualCost += profitability.expenses.total;
       totalGross += gross;
+      totalRevenue += profitability.revenue.total;
+      totalNetProfit += profitability.netProfit;
 
       if (roi > 20) totalHits += 1;
       else if (roi < -20) totalFlops += 1;
@@ -164,14 +168,13 @@ export class SimulationAnalyticsService {
     });
 
     const averageROI =
-      totalActualCost > 0 ? (((totalGross - totalActualCost) / totalActualCost) * 100).toFixed(2) : 0;
+      totalActualCost > 0 ? ((totalNetProfit / totalActualCost) * 100).toFixed(2) : 0;
 
     const formattedMovies = movies.map((m) => {
-      const actualCost = m.totalCost || m.budget || 1;
-      const gross = m.worldwideGross || m.boxOffice || 0;
+      const profitability = calculateMovieProfitability(m);
+      const actualCost = profitability.expenses.total;
+      const gross = profitability.revenue.boxOffice;
       const opening = m.openingWeekend || 0;
-      const netProfit = m.profit !== undefined ? m.profit : gross - actualCost;
-      const roi = m.roi !== undefined ? m.roi : Number(((netProfit / actualCost) * 100).toFixed(2));
       const script = scriptMap.get(String(m.scriptId));
       const detectedGenre = m.genre || (script && script.genres && script.genres[0]) || "Drama";
 
@@ -179,14 +182,27 @@ export class SimulationAnalyticsService {
         _id: m._id,
         title: m.title,
         genre: detectedGenre,
-        budget: m.budget,
+        budget: m.budget || 0,
+        productionBudget: profitability.expenses.production,
         actualCost,
-        costVariance: actualCost - m.budget,
+        costVariance: actualCost - (m.budget || 0),
         totalGross: gross,
+        totalRevenue: profitability.revenue.total,
         openingWeekend: opening,
-        netProfit,
-        roi,
+        netProfit: profitability.netProfit,
+        roi: profitability.roiPercent,
+        productionExpenses: profitability.expenses.production,
+        marketingExpenses: profitability.expenses.marketing,
+        localizationExpenses: profitability.expenses.localization,
+        merchandiseRevenue: profitability.revenue.merchandise,
+        soundtrackRevenue: profitability.revenue.soundtrack,
+        profitabilityStatus: profitability.profitabilityStatus,
+        profitabilityLabel: profitability.profitabilityLabel,
         reviewScore: m.criticScore || m.reviewScore || 0,
+        criticScore: m.criticScore || 0,
+        criticLabel: m.criticLabel || "",
+        audienceScore: m.audienceScore || 0,
+        audienceLabel: m.audienceLabel || "",
         verdict: m.verdict || "N/A",
         weeksInTheaters: m.weeksInTheaters || 1,
         directorName: m.directorName || "Unknown",
@@ -200,7 +216,8 @@ export class SimulationAnalyticsService {
         totalBudget,
         totalActualCost,
         totalGross,
-        totalNetProfit: totalGross - totalActualCost,
+        totalRevenue,
+        totalNetProfit,
         averageROI: Number(averageROI),
         hitRatio: allReleased.length > 0 ? Number(((totalHits / allReleased.length) * 100).toFixed(1)) : 0,
         highestGrossing,

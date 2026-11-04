@@ -66,6 +66,7 @@ import scandalRoutes from "./routes/scandalRoutes.js";
 import awardsRoutes from "./routes/awardsRoutes.js";
 import boxOfficeRoutes from "./routes/boxOfficeRoutes.js";
 import merchandiseEconomyRoutes from "./routes/merchandiseEconomyRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 import tutorialRoutes from "./routes/tutorialRoutes.js";
 
 const app = express();
@@ -137,6 +138,7 @@ app.use("/api/actors", apiRateLimiter, actorsRoutes);
 app.use("/api/academy", apiRateLimiter, academyRoutes);
 app.use("/api/crew", apiRateLimiter, crewRoutes);
 app.use("/api/movies", apiRateLimiter, movieRoutes);
+app.use("/api/analytics", apiRateLimiter, analyticsRoutes);
 app.use("/api/simulation", simulationRateLimiter, simulationRoutes);
 app.use("/api/notifications", apiRateLimiter, notificationsRoutes);
 app.use("/api/awards-campaign", apiRateLimiter, awardsCampaignRoutes);

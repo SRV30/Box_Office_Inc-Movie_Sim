@@ -66,6 +66,7 @@ const movieSchema = new mongoose.Schema(
         supportingActorCost: { type: Number, default: 0 },
         crewCost: { type: Number, default: 0 },
         marketingCost: { type: Number, default: 0 },
+        soundtrackCost: { type: Number, default: 0 },
     },
 
     // Track weeks in each stage
