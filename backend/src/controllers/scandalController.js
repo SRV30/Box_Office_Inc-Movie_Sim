@@ -10,16 +10,35 @@ import {
 } from "../services/simulation/engines/scandalEngine.js";
 
 /**
+ * Resolves the Studio associated with the current authenticated user.
+ */
+const getStudioForRequest = async (req) => {
+  if (req.user?._id) {
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (studio) return studio;
+  }
+  if (req.user?.studioId) {
+    const studio = await Studio.findById(req.user.studioId);
+    if (studio) return studio;
+  }
+  if (req.query?.studioId || req.body?.studioId) {
+    const studio = await Studio.findById(req.query?.studioId || req.body?.studioId);
+    if (studio) return studio;
+  }
+  return null;
+};
+
+/**
  * Get all scandals for the authenticated studio
  */
 export async function getStudioScandals(req, res, next) {
   try {
-    const studioId = req.user?.studioId || req.query.studioId;
-    if (!studioId) {
-      return res.status(400).json({ success: false, message: "Studio ID required" });
+    const studio = await getStudioForRequest(req);
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
     }
 
-    const scandals = await CelebrityScandal.find({ studioId }).sort({ createdAt: -1 });
+    const scandals = await CelebrityScandal.find({ studioId: studio._id }).sort({ createdAt: -1 });
     return res.status(200).json({
       success: true,
       data: scandals,
@@ -35,13 +54,13 @@ export async function getStudioScandals(req, res, next) {
  */
 export async function getActiveScandals(req, res, next) {
   try {
-    const studioId = req.user?.studioId || req.query.studioId;
-    if (!studioId) {
-      return res.status(400).json({ success: false, message: "Studio ID required" });
+    const studio = await getStudioForRequest(req);
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
     }
 
     const scandals = await CelebrityScandal.find({
-      studioId,
+      studioId: studio._id,
       status: { $in: ["ACTIVE", "CONTAINED"] },
     }).sort({ publicOutrage: -1 });
 
@@ -70,7 +89,12 @@ export function getAvailableStrategies(req, res) {
  */
 export async function triggerScandal(req, res, next) {
   try {
-    const studioId = req.user?.studioId || req.body.studioId;
+    const studio = await getStudioForRequest(req);
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+    const studioId = studio._id;
+
     const {
       talentId,
       talentName,
@@ -147,23 +171,36 @@ export async function respondToScandal(req, res, next) {
     const { id } = req.params;
     const { strategyKey } = req.body;
 
+    const userStudio = await getStudioForRequest(req);
+    if (!userStudio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
     const scandal = await CelebrityScandal.findById(id);
     if (!scandal) {
       return res.status(404).json({ success: false, message: "Scandal not found" });
     }
 
-    const studio = await Studio.findById(scandal.studioId);
-    const studioCash = studio?.cash || 0;
+    if (String(scandal.studioId) !== String(userStudio._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: Scandal does not belong to your studio",
+      });
+    }
 
-    const outcome = evaluatePRStrategy(scandal, strategyKey, studioCash);
+    const studioFunds = Number(userStudio.money ?? userStudio.cash ?? 0);
+    const outcome = evaluatePRStrategy(scandal, strategyKey, studioFunds);
     if (!outcome.success) {
       return res.status(400).json(outcome);
     }
 
-    // Deduct cost from studio if studio exists
-    if (studio && outcome.cost > 0) {
-      studio.cash = Math.max(0, studio.cash - outcome.cost);
-      await studio.save();
+    // Deduct cost from studio funds
+    if (outcome.cost > 0) {
+      userStudio.money = Math.max(0, Number(userStudio.money || 0) - outcome.cost);
+      if (userStudio.cash !== undefined) {
+        userStudio.cash = Math.max(0, Number(userStudio.cash || 0) - outcome.cost);
+      }
+      await userStudio.save();
     }
 
     scandal.publicOutrage = outcome.publicOutrage;
@@ -187,7 +224,7 @@ export async function respondToScandal(req, res, next) {
       success: true,
       message: outcome.message,
       data: scandal,
-      studioCashRemaining: studio?.cash,
+      studioCashRemaining: userStudio.money,
     });
   } catch (error) {
     next(error);
