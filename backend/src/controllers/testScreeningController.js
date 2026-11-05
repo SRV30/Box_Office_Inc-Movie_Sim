@@ -18,6 +18,18 @@ export const holdTestScreening = async (req, res) => {
       return res.status(404).json({ success: false, message: "Movie not found" });
     }
 
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    if (String(movie.studioId) !== String(studio._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to hold test screenings for this movie",
+      });
+    }
+
     if (movie.status !== "POST_PRODUCTION") {
       return res.status(400).json({
         success: false,
@@ -26,9 +38,8 @@ export const holdTestScreening = async (req, res) => {
     }
 
     const gameState = await findGameState(req.user._id);
-    const studio = await Studio.findOne({ owner: req.user._id });
-    if (!gameState || !studio) {
-      return res.status(404).json({ success: false, message: "Game state or studio not found" });
+    if (!gameState) {
+      return res.status(404).json({ success: false, message: "Game state not found" });
     }
 
     const screeningCost = 50000;
@@ -85,6 +96,18 @@ export const orderReshoots = async (req, res) => {
       return res.status(404).json({ success: false, message: "Movie not found" });
     }
 
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    if (String(movie.studioId) !== String(studio._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to order reshoots for this movie",
+      });
+    }
+
     if (movie.status !== "POST_PRODUCTION") {
       return res.status(400).json({
         success: false,
@@ -93,8 +116,7 @@ export const orderReshoots = async (req, res) => {
     }
 
     const gameState = await findGameState(req.user._id);
-    const studio = await Studio.findOne({ owner: req.user._id });
-    if (!gameState || !studio) {
+    if (!gameState) {
       return res.status(404).json({ success: false, message: "Game state or studio not found" });
     }
 
