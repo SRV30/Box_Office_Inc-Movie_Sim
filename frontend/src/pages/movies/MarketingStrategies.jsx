@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { ArrowLeft, Sparkles, AlertCircle, Film, DollarSign, Star } from "lucide-react";
 import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import CampaignSelector from "../../components/movies/CampaignSelector";
+import { showToast } from "../../features/ui/toastSlice";
 
 const MarketingStrategies = () => {
   const { id } = useParams();
+  const dispatch = useDispatch();
   const [movie, setMovie] = useState(null);
   const [studioMoney, setStudioMoney] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -35,10 +38,15 @@ const MarketingStrategies = () => {
   const handleLaunchCampaign = async (campaignId) => {
     try {
       const res = await api.post(`/marketing/${id}/campaign`, { campaignId });
-      alert(res.data.message);
+      dispatch(showToast({ message: res.data.message, type: "success" }));
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to launch campaign");
+      dispatch(
+        showToast({
+          message: err.response?.data?.message || "Failed to launch campaign",
+          type: "error",
+        })
+      );
     }
   };
 

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import { DollarSign, Shield, Star, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
+import { showToast } from "../../features/ui/toastSlice";
 
 const MerchDashboard = () => {
+  const dispatch = useDispatch();
   const [data, setData] = useState({
     activeMovies: [],
     merchandiseIncomeHistory: [],
@@ -36,15 +39,25 @@ const MerchDashboard = () => {
 
   const handleBoost = async (movieId) => {
     if (studioMoney < 2500000) {
-      alert("Insufficient funds! Upgrading merchandising campaigns costs ₹2,500,000.");
+      dispatch(
+        showToast({
+          message: "Insufficient funds! Upgrading merchandising campaigns costs $2,500,000.",
+          type: "error",
+        })
+      );
       return;
     }
     try {
       const res = await api.post(`/merch/boost/${movieId}`);
-      alert(res.data.message);
+      dispatch(showToast({ message: res.data.message, type: "success" }));
       fetchMerchData();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to upgrade merchandising campaign");
+      dispatch(
+        showToast({
+          message: err.response?.data?.message || "Failed to upgrade merchandising campaign",
+          type: "error",
+        })
+      );
     }
   };
 

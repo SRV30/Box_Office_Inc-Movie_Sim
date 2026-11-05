@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { ArrowLeft, Sparkles, Award, AlertCircle } from "lucide-react";
 import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import LobbyingCategorySelector from "../../components/awards/LobbyingCategorySelector";
+import { showToast } from "../../features/ui/toastSlice";
 
 const AwardsCampaign = () => {
   const { id } = useParams();
+  const dispatch = useDispatch();
   const [movie, setMovie] = useState(null);
   const [studioMoney, setStudioMoney] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -38,10 +41,15 @@ const AwardsCampaign = () => {
         movieId: id,
         categoryId
       });
-      alert(res.data.message);
+      dispatch(showToast({ message: res.data.message, type: "success" }));
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to launch awards campaign");
+      dispatch(
+        showToast({
+          message: err.response?.data?.message || "Failed to launch awards campaign",
+          type: "error",
+        })
+      );
     }
   };
 
