@@ -140,3 +140,61 @@ export const getLoans = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * POST /api/studios/loans/:loanId/repay
+ *
+ * Early payoff of an active loan. Deducts remaining installments
+ * from studio funds and immediately closes out the debt obligation.
+ */
+export const repayLoanEarly = async (req, res) => {
+  try {
+    const { loanId } = req.params;
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const loanIndex = (studio.loans || []).findIndex(
+      (l) => String(l._id) === String(loanId)
+    );
+
+    if (loanIndex === -1) {
+      return res.status(404).json({ success: false, message: "Active loan not found" });
+    }
+
+    const loan = studio.loans[loanIndex];
+    const payoffAmount = loan.weeklyRepayment * loan.weeksRemaining;
+
+    if (studio.money < payoffAmount) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient funds. Early payoff requires $${payoffAmount.toLocaleString()}, but studio balance is $${studio.money.toLocaleString()}.`,
+        requiredAmount: payoffAmount,
+        studioBalance: studio.money,
+      });
+    }
+
+    studio.money -= payoffAmount;
+    studio.loans.splice(loanIndex, 1);
+
+    if (studio.money >= 0) {
+      studio.negativeCashWeeks = 0;
+      if (studio.isBankrupt && studio.money > 0) {
+        studio.isBankrupt = false;
+      }
+    }
+
+    await studio.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully paid off loan early for $${payoffAmount.toLocaleString()}.`,
+      paidAmount: payoffAmount,
+      remainingLoans: studio.loans,
+      newBalance: studio.money,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
