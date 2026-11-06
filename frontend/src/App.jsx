@@ -38,6 +38,7 @@ import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
 import TVShowDetailView from "./pages/tvshows/TVShowDetailView";
 import StudioStats from "./pages/studio/StudioStats";
 import FinancialHistory from "./pages/studio/FinancialHistory";
+import FinancialForecast from "./pages/studio/FinancialForecast";
 import MerchDashboard from "./pages/merch/MerchDashboard";
 import MerchandiseEconomyHub from "./pages/merch/MerchandiseEconomyHub";
 import AwardsHistory from "./pages/studio/AwardsHistory";
@@ -463,6 +464,14 @@ function App() {
           element={
             <ProtectedRoute>
               <FinancialHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/forecast"
+          element={
+            <ProtectedRoute>
+              <FinancialForecast />
             </ProtectedRoute>
           }
         />
