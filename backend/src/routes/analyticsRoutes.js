@@ -1,7 +1,10 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
+import { validate } from "../middleware/validationMiddleware.js";
+import { financialForecastQuerySchema } from "../validators/financialForecastValidator.js";
 import {
   getFinancialAnalytics,
+  getFinancialForecast,
   getMoviePerformanceReports,
   getMovieProfitabilitySummary,
   getGenreAnalytics,
@@ -12,6 +15,12 @@ import {
 const router = express.Router();
 
 router.get("/financials", protect, getFinancialAnalytics);
+router.get(
+  "/financials/forecast",
+  protect,
+  validate(financialForecastQuerySchema),
+  getFinancialForecast
+);
 router.get("/movies", protect, getMoviePerformanceReports);
 router.get(
   "/movies/:movieId/profitability",
