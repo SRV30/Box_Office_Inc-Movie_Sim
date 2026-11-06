@@ -1,15 +1,16 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
 
-// Async action to fetch awards
+// Async action to fetch studio awards
 export const fetchAwards = createAsyncThunk(
   'awards/fetchAwards',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/awards'); 
-      return response.data;
+      const response = await api.get('/awards');
+      const payload = response.data;
+      return Array.isArray(payload) ? payload : (payload.awards || []);
     } catch (error) {
-      return rejectWithValue(error.response?.data || 'Failed to fetch awards');
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch awards');
     }
   }
 );
@@ -30,7 +31,7 @@ const awardsSlice = createSlice({
       })
       .addCase(fetchAwards.fulfilled, (state, action) => {
         state.loading = false;
-        state.data = action.payload;
+        state.data = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchAwards.rejected, (state, action) => {
         state.loading = false;
