@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Trophy, Award, Sparkles, Clock, Quote } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Trophy, Award, Sparkles, Clock, Film } from "lucide-react";
 import { fetchAwards } from "../../features/awards/awardsSlice";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { Skeleton } from "../../components/ui/Skeleton";
@@ -31,6 +32,8 @@ const TrophyRoom = () => {
       setLoadingLaurels(false);
     }
   };
+
+  const awardList = Array.isArray(awards) ? awards : (awards?.awards || []);
 
   if (loading) {
     return (
@@ -80,7 +83,7 @@ const TrophyRoom = () => {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              <Trophy size={14} /> Academy Awards ({awards.length})
+              <Trophy size={14} /> Academy Awards ({awardList.length})
             </button>
             <button
               onClick={() => setActiveTab("festivals")}
@@ -96,15 +99,33 @@ const TrophyRoom = () => {
         </header>
 
         {activeTab === "academy" ? (
-          awards.length === 0 ? (
-            <div className="bg-gray-900 border border-gray-800 p-12 rounded-2xl text-center">
-              <Trophy className="text-gray-600 w-16 h-16 mx-auto mb-4" />
-              <h2 className="text-xl text-gray-400">Your academy trophy case is empty.</h2>
-              <p className="text-gray-500 mt-2">Keep producing blockbuster movies to win awards season honors!</p>
+          awardList.length === 0 ? (
+            <div className="bg-gray-900 border border-gray-800 p-12 rounded-2xl text-center flex flex-col items-center">
+              <div className="w-20 h-20 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-4">
+                <Trophy className="text-yellow-500/80 w-10 h-10" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">Your Academy Trophy Case is Empty</h2>
+              <p className="text-gray-400 max-w-md mt-2 text-sm leading-relaxed">
+                Produce acclaimed cinematic masterworks, conduct awards lobbying, and secure critical consensus to win prestigious golden trophies!
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 justify-center">
+                <Link
+                  to="/movies/create"
+                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition flex items-center gap-2 shadow-lg shadow-amber-600/20"
+                >
+                  <Film size={16} /> Produce Contender
+                </Link>
+                <Link
+                  to="/awards/season"
+                  className="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-slate-200 font-medium text-sm transition border border-gray-700"
+                >
+                  Awards Season Central
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {awards.map((award, index) => (
+              {awardList.map((award, index) => (
                 <div 
                   key={index} 
                   className="bg-gray-900 border border-gray-800 p-6 rounded-2xl flex flex-col items-center text-center hover:border-yellow-500/50 transition-colors"
@@ -125,12 +146,22 @@ const TrophyRoom = () => {
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
             </div>
           ) : festivalLaurels.length === 0 ? (
-            <div className="bg-gray-900 border border-gray-800 p-12 rounded-2xl text-center">
-              <Award className="text-gray-600 w-16 h-16 mx-auto mb-4" />
-              <h2 className="text-xl text-gray-400">No Festival Laurels Earned Yet</h2>
-              <p className="text-gray-500 mt-2">
+            <div className="bg-gray-900 border border-gray-800 p-12 rounded-2xl text-center flex flex-col items-center">
+              <div className="w-20 h-20 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-4">
+                <Award className="text-amber-500/80 w-10 h-10" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">No Festival Laurels Earned Yet</h2>
+              <p className="text-gray-400 max-w-md mt-2 text-sm leading-relaxed">
                 Screen your premiere films at Cannes, Venice, TIFF, or Sundance to capture Golden Lions and Palme d&apos;Or laurels.
               </p>
+              <div className="mt-6 flex flex-wrap gap-3 justify-center">
+                <Link
+                  to="/studio/festivals"
+                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition flex items-center gap-2 shadow-lg shadow-amber-600/20"
+                >
+                  <Sparkles size={16} /> Enter Festival Circuit
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
