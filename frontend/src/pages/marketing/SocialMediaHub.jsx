@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
+import { showToast } from "../../features/ui/toastSlice";
 import {
   Share2,
   TrendingUp,
@@ -21,6 +23,7 @@ const PLATFORM_STYLES = {
 };
 
 const SocialMediaHub = () => {
+  const dispatch = useDispatch();
   const [accounts, setAccounts] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [events, setEvents] = useState([]);
@@ -77,9 +80,20 @@ const SocialMediaHub = () => {
       await api.put(`/social/accounts/${platform}/budget`, {
         weeklyBudget: Number(budgetInputs[platform] || 0),
       });
+      dispatch(
+        showToast({
+          message: `Weekly budget updated for ${PLATFORM_STYLES[platform] ? platform : "platform"}.`,
+          type: "success",
+        })
+      );
       fetchAll();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update budget.");
+      dispatch(
+        showToast({
+          message: err.response?.data?.message || "Failed to update budget.",
+          type: "error",
+        })
+      );
     }
   };
 
@@ -91,11 +105,16 @@ const SocialMediaHub = () => {
       setLaunching(true);
       const res = await api.post("/social/campaigns", campaignForm);
       if (res.data?.success) {
-        alert(res.data.message);
+        dispatch(showToast({ message: res.data.message, type: "success" }));
         fetchAll();
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to launch campaign.");
+      dispatch(
+        showToast({
+          message: err.response?.data?.message || "Failed to launch campaign.",
+          type: "error",
+        })
+      );
     } finally {
       setLaunching(false);
     }
