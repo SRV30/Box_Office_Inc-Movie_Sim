@@ -150,4 +150,30 @@ test("Test Screenings & Reshoots API", async (t) => {
     const result = await res.json();
     assert.strictEqual(result.success, false);
   });
+
+  await t.test("Rejects requests with 403 if movie belongs to another studio", async () => {
+    const competitor = await registerUser("competitor_director", "rival@example.com", "Rival Studios");
+    const competitorMovie = await Movie.create({
+      title: "Competitor Film",
+      studioId: competitor.studio._id,
+      budget: 1000000,
+      createdWeek: 1,
+      status: "POST_PRODUCTION",
+      quality: 70,
+      weeksInStage: 1,
+      remainingWeeks: 3,
+    });
+
+    const res = await fetch(`${baseUrl}/api/movies/${competitorMovie._id}/test-screening`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    assert.strictEqual(res.status, 403);
+    const result = await res.json();
+    assert.strictEqual(result.success, false);
+    assert.ok(result.message.includes("Not authorized"));
+  });
 });
