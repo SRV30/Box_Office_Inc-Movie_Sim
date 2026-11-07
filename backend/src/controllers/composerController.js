@@ -1,6 +1,7 @@
 import Composer from "../models/Composer.js";
 import Studio from "../models/Studio.js";
 import ComposerLifecycleEngine from "../services/composer/composerLifecycleEngine.js";
+import { withTransaction } from "../utils/financeTransactionHelper.js";
 
 /**
  * Controller for Composer recruitment, contracts, and roster queries.
@@ -75,21 +76,38 @@ export const hireComposer = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Insufficient studio funds for signing bonus" });
     }
 
-    studio.money -= upfrontSigningFee;
-    await studio.save();
+    const updatedComposer = await withTransaction(async (session) => {
+      const activeComposer = await Composer.findOne({ _id: composerId, status: "AVAILABLE" }).session(session);
+      if (!activeComposer) {
+        throw new Error("Composer is no longer available for hire");
+      }
 
-    composer.studio = studio._id;
-    composer.user = req.user._id;
-    composer.status = "UNDER_CONTRACT";
-    composer.contractYears = contractYears;
-    await composer.save();
+      const activeStudio = await Studio.findById(studio._id).session(session);
+      if (!activeStudio || activeStudio.money < upfrontSigningFee) {
+        throw new Error("Insufficient studio funds for signing bonus");
+      }
+
+      activeStudio.money -= upfrontSigningFee;
+      await activeStudio.save({ session });
+
+      activeComposer.studio = activeStudio._id;
+      activeComposer.user = req.user._id;
+      activeComposer.status = "UNDER_CONTRACT";
+      activeComposer.contractYears = contractYears;
+      await activeComposer.save({ session });
+
+      return activeComposer;
+    });
 
     res.status(200).json({
       success: true,
-      message: `Signed ${composer.name} to a ${contractYears}-year contract`,
-      data: composer,
+      message: `Signed ${updatedComposer.name} to a ${contractYears}-year contract`,
+      data: updatedComposer,
     });
   } catch (error) {
+    if (error.message.includes("no longer available") || error.message.includes("Insufficient studio funds")) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     next(error);
   }
 };
@@ -102,21 +120,28 @@ export const releaseComposerContract = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Studio not found" });
     }
 
-    const composer = await Composer.findOne({ _id: composerId, studio: studio._id });
-    if (!composer) {
+    const updated = await withTransaction(async (session) => {
+      const composer = await Composer.findOne({ _id: composerId, studio: studio._id }).session(session);
+      if (!composer) {
+        return null;
+      }
+
+      composer.studio = null;
+      composer.user = null;
+      composer.status = "AVAILABLE";
+      composer.contractYears = 0;
+      await composer.save({ session });
+      return composer;
+    });
+
+    if (!updated) {
       return res.status(404).json({ success: false, message: "Composer not found under your studio roster" });
     }
 
-    composer.studio = null;
-    composer.user = null;
-    composer.status = "AVAILABLE";
-    composer.contractYears = 0;
-    await composer.save();
-
     res.status(200).json({
       success: true,
-      message: `Released ${composer.name} from studio contract`,
-      data: composer,
+      message: `Released ${updated.name} from studio contract`,
+      data: updated,
     });
   } catch (error) {
     next(error);
