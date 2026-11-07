@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { showToast } from "../../features/ui/toastSlice";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -25,6 +26,12 @@ import {
   BarChart3,
   Trophy,
   FileSpreadsheet,
+  Landmark,
+  AlertTriangle,
+  CreditCard,
+  PlusCircle,
+  CheckCircle2,
+  X,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -163,10 +170,45 @@ const aggregateMonthly = (weekly) => {
 };
 
 // ---------------------------------------------------------------------------
+// Loan tier definitions for application modal
+// ---------------------------------------------------------------------------
+
+const LOAN_TIERS_CONFIG = [
+  {
+    tier: "SMALL",
+    title: "Bridge Credit Facility",
+    amount: 500_000,
+    rate: "8% APR",
+    weeks: 26,
+    weeklyPayment: 20_769,
+    description: "Short-term operational liquidity for mid-budget casting, emergency rewrites, and post-production.",
+  },
+  {
+    tier: "MEDIUM",
+    title: "Production Expansion Capital",
+    amount: 1_000_000,
+    rate: "12% APR",
+    weeks: 52,
+    weeklyPayment: 21_538,
+    description: "Medium-term capital injection for studio stage upgrades, talent contract buyouts, and multi-market distribution.",
+  },
+  {
+    tier: "LARGE",
+    title: "Blockbuster Syndication Loan",
+    amount: 2_000_000,
+    rate: "18% APR",
+    weeks: 78,
+    weeklyPayment: 30_256,
+    description: "High-volume studio credit line for big-budget cinematic universe entries and massive promotional campaigns.",
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 const FinancialHistory = () => {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const studio = user?.studio;
 
@@ -174,6 +216,16 @@ const FinancialHistory = () => {
   const [movies, setMovies] = useState([]);
   const [moviesLoading, setMoviesLoading] = useState(true);
   const [isExportOpen, setIsExportOpen] = useState(false);
+
+  // Corporate loan state
+  const [loans, setLoans] = useState([]);
+  const [loansLoading, setLoansLoading] = useState(false);
+  const [totalWeeklyDebt, setTotalWeeklyDebt] = useState(0);
+  const [isBankrupt, setIsBankrupt] = useState(false);
+  const [negativeCashWeeks, setNegativeCashWeeks] = useState(0);
+  const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
+  const [borrowLoading, setBorrowLoading] = useState(false);
+  const [selectedTier, setSelectedTier] = useState("SMALL");
 
   // Chronological (oldest -> newest) for charts.
   const weekly = useMemo(
@@ -218,9 +270,53 @@ const FinancialHistory = () => {
     }
   }, []);
 
+  const fetchLoans = useCallback(async () => {
+    try {
+      setLoansLoading(true);
+      const res = await api.get("/studios/loans");
+      if (res.data?.success) {
+        setLoans(res.data.loans || []);
+        setTotalWeeklyDebt(Number(res.data.totalWeeklyDebt) || 0);
+        setIsBankrupt(Boolean(res.data.isBankrupt));
+        setNegativeCashWeeks(Number(res.data.negativeCashWeeks) || 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch studio corporate loans:", err);
+    } finally {
+      setLoansLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchReleasedMovies();
-  }, [fetchReleasedMovies]);
+    fetchLoans();
+  }, [fetchReleasedMovies, fetchLoans]);
+
+  const handleTakeLoan = async () => {
+    try {
+      setBorrowLoading(true);
+      const res = await api.post("/studios/loans/take", { tier: selectedTier });
+      if (res.data?.success) {
+        dispatch(
+          showToast({
+            message: res.data.message || "Corporate credit line approved!",
+            type: "success",
+          })
+        );
+        setIsLoanModalOpen(false);
+        fetchLoans();
+      }
+    } catch (err) {
+      dispatch(
+        showToast({
+          message: err.response?.data?.message || "Failed to secure corporate loan.",
+          type: "error",
+        })
+      );
+    } finally {
+      setBorrowLoading(false);
+    }
+  };
 
   // Top movies by ROI for the profitability chart.
   const roiData = useMemo(() => {
@@ -256,15 +352,47 @@ const FinancialHistory = () => {
             <h1 className="text-4xl font-black text-white uppercase italic tracking-tighter">Ledger &amp; Financials</h1>
             <p className="text-slate-400 mt-2">Performance insights and historical logs for {studio?.name}.</p>
           </div>
-          {hasHistory && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsExportOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition flex items-center gap-2 cursor-pointer text-sm"
+              onClick={() => setIsLoanModalOpen(true)}
+              className="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2.5 px-5 rounded-xl transition flex items-center gap-2 cursor-pointer text-sm shadow-lg shadow-violet-600/20"
             >
-              <FileSpreadsheet size={18} /> Export Audit Report
+              <Landmark size={18} /> Manage Corporate Loans
             </button>
-          )}
+            {hasHistory && (
+              <button
+                onClick={() => setIsExportOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition flex items-center gap-2 cursor-pointer text-sm"
+              >
+                <FileSpreadsheet size={18} /> Export Audit Report
+              </button>
+            )}
+          </div>
         </div>
+
+        {isBankrupt && (
+          <div className="bg-red-500/10 border border-red-500/40 rounded-2xl p-4 flex items-center gap-3 text-red-400 shadow-xl">
+            <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+            <div>
+              <div className="font-bold text-sm">Studio Under Bankruptcy Administration</div>
+              <div className="text-xs text-red-300 mt-0.5">
+                Outstanding liabilities exceed studio liquidity. Weekly loan repayments have ceased operations.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isBankrupt && negativeCashWeeks > 0 && (
+          <div className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex items-center gap-3 text-amber-400 shadow-xl">
+            <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+            <div>
+              <div className="font-bold text-sm">Liquidity Warning: Negative Cash Reserves</div>
+              <div className="text-xs text-amber-300 mt-0.5">
+                Studio balance has remained negative for {negativeCashWeeks} consecutive week(s). Reaching 4 consecutive weeks triggers studio bankruptcy.
+              </div>
+            </div>
+          </div>
+        )}
 
         {!hasHistory ? (
           <div className="bg-[#111827] border border-slate-800 rounded-3xl p-20 text-center text-slate-500">
@@ -427,6 +555,78 @@ const FinancialHistory = () => {
           )}
         </div>
 
+        {/* Corporate Loans & Debt Obligations */}
+        <div className="bg-[#111827] border border-slate-800 rounded-3xl p-6 shadow-2xl">
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <Landmark size={20} className="text-violet-400" />
+              <div>
+                <h2 className="text-lg font-black text-white uppercase tracking-tight">Corporate Debt &amp; Credit Facilities</h2>
+                <p className="text-slate-400 text-xs">Studio loan commitments, interest amortization, and weekly debt service.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsLoanModalOpen(true)}
+              className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-violet-600/20"
+            >
+              <PlusCircle size={15} /> Apply for Credit
+            </button>
+          </div>
+
+          {loansLoading ? (
+            <div className="text-slate-500 text-center py-8">Checking loan obligations…</div>
+          ) : loans.length === 0 ? (
+            <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 text-center">
+              <CreditCard className="text-slate-600 w-10 h-10 mx-auto mb-2" />
+              <div className="text-white font-bold text-sm">No Active Corporate Debt</div>
+              <p className="text-slate-400 text-xs mt-1 max-w-md mx-auto">
+                Your studio is debt-free with zero weekly debt deductions. Need capital for large projects? You can draw down emergency liquidity from corporate credit lines anytime.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-violet-950/20 border border-violet-800/40 rounded-2xl p-4 flex justify-between items-center flex-wrap gap-3">
+                <div>
+                  <span className="text-xs text-violet-300 font-medium">Total Weekly Debt Service:</span>
+                  <div className="text-xl font-black text-violet-400 mt-0.5">
+                    {formatINR(totalWeeklyDebt)} <span className="text-xs text-slate-400 font-normal">/ week</span>
+                  </div>
+                </div>
+                <div className="text-xs text-slate-400 max-w-sm text-right">
+                  Deducted automatically from studio cash balance at the conclusion of each weekly simulation cycle.
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-500 uppercase text-[10px] font-black tracking-widest">
+                      <th className="px-4 py-3">Loan Principal</th>
+                      <th className="px-4 py-3">Annual Interest</th>
+                      <th className="px-4 py-3">Weekly Repayment</th>
+                      <th className="px-4 py-3">Term Remaining</th>
+                      <th className="px-4 py-3">Drawdown Week</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/50 text-sm">
+                    {loans.map((loan, idx) => (
+                      <tr key={loan._id || idx} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-4 py-3 font-bold text-white">{formatINR(loan.amount)}</td>
+                        <td className="px-4 py-3 text-slate-300">
+                          {((loan.interestRate || 0) * 100).toFixed(0)}% APR
+                        </td>
+                        <td className="px-4 py-3 font-bold text-amber-400">{formatINR(loan.weeklyRepayment)}</td>
+                        <td className="px-4 py-3 text-slate-300">{loan.weeksRemaining} weeks</td>
+                        <td className="px-4 py-3 text-slate-400">Week {loan.takenWeek}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Detailed weekly ledger (original table, preserved) */}
         {hasHistory ? (
           <div className="bg-[#111827] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
@@ -476,6 +676,87 @@ const FinancialHistory = () => {
           </div>
         ) : null}
       </div>
+
+      {/* Corporate Loan Application Modal */}
+      {isLoanModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#111827] border border-slate-700 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative">
+            <button
+              onClick={() => setIsLoanModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white transition cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/40 flex items-center justify-center text-violet-400">
+                <Landmark size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white">Apply for Corporate Credit</h3>
+                <p className="text-xs text-slate-400">Secure immediate non-dilutive liquidity for your studio.</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 my-6">
+              {LOAN_TIERS_CONFIG.map((tier) => {
+                const isSelected = selectedTier === tier.tier;
+                return (
+                  <div
+                    key={tier.tier}
+                    onClick={() => setSelectedTier(tier.tier)}
+                    className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col sm:flex-row justify-between sm:items-center gap-3 ${
+                      isSelected
+                        ? "bg-violet-950/40 border-violet-500 shadow-md shadow-violet-500/10"
+                        : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-base">{tier.title}</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-600/30 text-violet-300">
+                          {tier.rate}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1 max-w-md">{tier.description}</p>
+                      <div className="text-xs text-slate-500 mt-2">
+                        Repayment: <strong className="text-slate-300">{formatINR(tier.weeklyPayment)}/wk</strong> over {tier.weeks} weeks
+                      </div>
+                    </div>
+
+                    <div className="text-right flex-shrink-0 flex sm:flex-col items-center sm:items-end justify-between">
+                      <div className="text-lg font-black text-white">{formatINR(tier.amount)}</div>
+                      <div
+                        className={`w-5 h-5 rounded-full border mt-2 flex items-center justify-center ${
+                          isSelected ? "border-violet-400 bg-violet-500 text-white" : "border-slate-600"
+                        }`}
+                      >
+                        {isSelected && <CheckCircle2 size={14} />}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <button
+                onClick={() => setIsLoanModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-slate-400 hover:text-white text-sm font-bold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTakeLoan}
+                disabled={borrowLoading}
+                className="px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg shadow-violet-600/20"
+              >
+                {borrowLoading ? "Securing Credit…" : "Authorize Drawdown"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ReportModal
         isOpen={isExportOpen}
