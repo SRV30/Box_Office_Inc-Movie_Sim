@@ -1,5 +1,6 @@
 import SimulationAnalyticsService from "../services/analytics/simulationAnalyticsService.js";
 import { getMovieProfitability } from "../services/analytics/movieProfitabilityService.js";
+import { getFinancialForecast as getStudioFinancialForecast } from "../services/analytics/financialForecastService.js";
 
 /**
  * Controller for simulation analytics and historical performance reporting endpoints.
@@ -10,6 +11,18 @@ export const getFinancialAnalytics = async (req, res, next) => {
       req.user._id,
       req.query
     );
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getFinancialForecast = async (req, res, next) => {
+  try {
+    const data = await getStudioFinancialForecast(req.user._id, req.query);
     res.status(200).json({
       success: true,
       data,

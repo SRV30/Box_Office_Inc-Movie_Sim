@@ -35,6 +35,7 @@ export const NAVIGATION_DEPARTMENTS = [
       { name: "Dashboard", path: "/", icon: LayoutDashboard },
       { name: "Studio Stats", path: "/studio/stats", icon: Building2 },
       { name: "Financial Ledger", path: "/studio/history", icon: IndianRupee },
+      { name: "Financial Forecast", path: "/studio/forecast", icon: TrendingUp },
       { name: "Historic Records", path: "/records", icon: Trophy },
       { name: "Leaderboard", path: "/leaderboard", icon: Trophy },
       { name: "Studio Upgrades", path: "/studio/upgrades", icon: Building2 },
