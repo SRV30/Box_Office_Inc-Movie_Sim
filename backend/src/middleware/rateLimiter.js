@@ -1,49 +1,155 @@
-const requestCounts = new Map();
+import mongoose from "mongoose";
+import rateLimit, { MemoryStore } from "express-rate-limit";
 
-const DEFAULT_WINDOW_MS = 60 * 1000;
-const DEFAULT_MAX_REQUESTS = 100;
+/**
+ * Shared MongoDB Store for express-rate-limit
+ * Enables distributed rate limiting across multiple server instances and processes.
+ */
+export class MongoRateLimitStore {
+  constructor(options = {}) {
+    this.windowMs = options.windowMs || 60 * 1000;
+    this.collectionName = options.collectionName || "ratelimits";
+    this.prefix = options.prefix || "rl";
+    this.fallbackStore = new Map();
+  }
 
-export const rateLimiter = (options = {}) => {
-  const windowMs = options.windowMs || DEFAULT_WINDOW_MS;
-  const maxRequests = options.maxRequests || DEFAULT_MAX_REQUESTS;
-  const keyPrefix = options.keyPrefix || "global";
+  init(options) {
+    if (options && options.windowMs) {
+      this.windowMs = options.windowMs;
+    }
+  }
 
-  return (req, res, next) => {
-    const ip = req.ip || req.connection?.remoteAddress || "unknown";
-    const key = `${keyPrefix}:${ip}`;
+  _isMongoAvailable() {
+    return mongoose.connection && mongoose.connection.readyState === 1;
+  }
+
+  _getCollection() {
+    return mongoose.connection.collection(this.collectionName);
+  }
+
+  async increment(key) {
+    const fullKey = `${this.prefix}:${key}`;
     const now = Date.now();
+    const resetTime = new Date(now + this.windowMs);
 
-    let entry = requestCounts.get(key);
+    if (this._isMongoAvailable()) {
+      try {
+        const collection = this._getCollection();
+        const doc = await collection.findOneAndUpdate(
+          { _id: fullKey },
+          {
+            $inc: { totalHits: 1 },
+            $setOnInsert: { expireAt: resetTime },
+          },
+          { upsert: true, returnDocument: "after" }
+        );
 
-    if (!entry || now - entry.windowStart > windowMs) {
-      entry = { windowStart: now, count: 0 };
-      requestCounts.set(key, entry);
-
-      const timer = setTimeout(() => {
-        if (requestCounts.get(key) === entry) {
-          requestCounts.delete(key);
-        }
-      }, windowMs);
-      if (timer && typeof timer.unref === "function") {
-        timer.unref();
+        const totalHits = doc?.totalHits || 1;
+        const docReset = doc?.expireAt ? new Date(doc.expireAt) : resetTime;
+        return {
+          totalHits,
+          resetTime: docReset,
+        };
+      } catch (err) {
+        // Fall back to memory on transient database error
       }
     }
 
-    entry.count++;
+    // In-memory fallback
+    let entry = this.fallbackStore.get(fullKey);
+    if (!entry || now > entry.resetTime.getTime()) {
+      entry = { totalHits: 0, resetTime };
+      this.fallbackStore.set(fullKey, entry);
+    }
+    entry.totalHits += 1;
+    return {
+      totalHits: entry.totalHits,
+      resetTime: entry.resetTime,
+    };
+  }
 
-    res.setHeader("X-RateLimit-Limit", maxRequests);
-    res.setHeader("X-RateLimit-Remaining", Math.max(0, maxRequests - entry.count));
-    res.setHeader("X-RateLimit-Reset", Math.ceil((entry.windowStart + windowMs) / 1000));
+  async decrement(key) {
+    const fullKey = `${this.prefix}:${key}`;
+    if (this._isMongoAvailable()) {
+      try {
+        const collection = this._getCollection();
+        await collection.updateOne({ _id: fullKey }, { $inc: { totalHits: -1 } });
+        return;
+      } catch (err) {
+        // Fall back to memory
+      }
+    }
 
-    if (entry.count > maxRequests) {
-      return res.status(429).json({
+    const entry = this.fallbackStore.get(fullKey);
+    if (entry && entry.totalHits > 0) {
+      entry.totalHits -= 1;
+    }
+  }
+
+  async resetKey(key) {
+    const fullKey = `${this.prefix}:${key}`;
+    if (this._isMongoAvailable()) {
+      try {
+        const collection = this._getCollection();
+        await collection.deleteOne({ _id: fullKey });
+      } catch (err) {
+        // Fall back to memory
+      }
+    }
+    this.fallbackStore.delete(fullKey);
+  }
+
+  async resetAll() {
+    if (this._isMongoAvailable()) {
+      try {
+        const collection = this._getCollection();
+        await collection.deleteMany({ _id: new RegExp(`^${this.prefix}:`) });
+      } catch (err) {
+        // Fall back to memory
+      }
+    }
+    this.fallbackStore.clear();
+  }
+}
+
+/**
+ * Creates a rate limiter instance with unified policy and shared storage.
+ */
+export const rateLimiter = (options = {}) => {
+  const windowMs = options.windowMs || 60 * 1000;
+  const maxRequests = options.maxRequests || options.max || 100;
+  const keyPrefix = options.keyPrefix || "global";
+
+  const useMongo =
+    process.env.RATE_LIMIT_STORE === "mongodb" ||
+    (process.env.NODE_ENV === "production" && process.env.RATE_LIMIT_STORE !== "memory");
+
+  const store = useMongo
+    ? new MongoRateLimitStore({ windowMs, prefix: keyPrefix })
+    : new MemoryStore();
+
+  return rateLimit({
+    windowMs,
+    limit: maxRequests,
+    standardHeaders: "draft-7",
+    legacyHeaders: true,
+    store,
+    validate: false,
+    keyGenerator: (req) => req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
+    skip: (req) => {
+      if (typeof options.skip === "function" && options.skip(req)) return true;
+      if (process.env.NODE_ENV === "test" && process.env.ENABLE_RATE_LIMIT_IN_TEST !== "true") {
+        return true;
+      }
+      return false;
+    },
+    handler: (req, res) => {
+      res.status(429).json({
         success: false,
         message: "Too many requests. Please try again later.",
       });
-    }
-
-    next();
-  };
+    },
+  });
 };
 
 export const authRateLimiter = rateLimiter({
@@ -63,3 +169,5 @@ export const simulationRateLimiter = rateLimiter({
   maxRequests: 10,
   keyPrefix: "simulation",
 });
+
+export default rateLimiter;

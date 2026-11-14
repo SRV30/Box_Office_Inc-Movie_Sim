@@ -49,6 +49,8 @@ const env = {
 
   LOG_LEVEL: process.env.LOG_LEVEL || (process.env.NODE_ENV === "production" ? "combined" : "dev"),
 
+  RATE_LIMIT_STORE: process.env.RATE_LIMIT_STORE || (process.env.NODE_ENV === "production" ? "mongodb" : "memory"),
+
   REQUEST_TIMEOUT_MS: parseInt(process.env.REQUEST_TIMEOUT_MS, 10) || 30000,
 };
 
