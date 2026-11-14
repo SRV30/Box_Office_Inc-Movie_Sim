@@ -111,12 +111,31 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 app.use((req, res, next) => {
-  res.setTimeout(env.REQUEST_TIMEOUT_MS, () => {
-    res.status(408).json({
-      success: false,
-      message: "Request timeout. Please try again.",
-    });
-  });
+  let isTimedOut = false;
+
+  const timer = setTimeout(() => {
+    isTimedOut = true;
+    if (!res.headersSent && !res.writableEnded) {
+      res.status(408).json({
+        success: false,
+        message: "Request timeout. Please try again.",
+        requestId: req.requestId,
+      });
+    }
+  }, env.REQUEST_TIMEOUT_MS);
+
+  // Clear timeout upon normal response completion or premature client connection close
+  const cleanupTimer = () => {
+    clearTimeout(timer);
+  };
+
+  res.on("finish", cleanupTimer);
+  res.on("close", cleanupTimer);
+  req.on("close", cleanupTimer);
+
+  // Expose check so downstream handlers can abort heavy work if timed out or disconnected
+  req.isTimedOut = () => isTimedOut;
+
   next();
 });
 
