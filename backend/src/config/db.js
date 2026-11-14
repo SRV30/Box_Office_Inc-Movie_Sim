@@ -4,13 +4,53 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 
 let mongoServer;
 
+export const isPlaceholderMongoUri = (uri) => {
+  if (!uri || typeof uri !== "string") return true;
+  const trimmed = uri.trim();
+  return (
+    trimmed === "" ||
+    trimmed.includes("mongodb+srv://user:pass@cluster.mongodb.net/dbname") ||
+    trimmed.includes("user:pass@") ||
+    trimmed.includes("cluster.mongodb.net/dbname")
+  );
+};
+
+export const validateMongoConfig = (envConfig = env) => {
+  const isProduction = envConfig.NODE_ENV === "production";
+  const uri = envConfig.MONGO_URI;
+
+  if (isProduction) {
+    if (isPlaceholderMongoUri(uri)) {
+      throw new Error(
+        "CRITICAL: Production startup rejected: MONGO_URI must point to a persistent MongoDB instance and cannot use development placeholder credentials."
+      );
+    }
+
+    if (!uri.startsWith("mongodb://") && !uri.startsWith("mongodb+srv://")) {
+      throw new Error(
+        "CRITICAL: Production MONGO_URI must be a valid URI starting with mongodb:// or mongodb+srv://."
+      );
+    }
+  }
+
+  return true;
+};
+
 const connectDB = async () => {
   try {
+    validateMongoConfig(env);
+
     let mongoUri = env.MONGO_URI;
     
-    // Use in-memory MongoDB if MONGO_URI is placeholder or not provided
-    if (mongoUri.includes("mongodb+srv://user:pass@cluster.mongodb.net/dbname") || !mongoUri) {
-      console.log("Starting in-memory MongoDB server...");
+    // In-memory fallback is restricted to explicit development/local mode
+    if (isPlaceholderMongoUri(mongoUri) || !mongoUri) {
+      if (env.NODE_ENV === "production") {
+        throw new Error(
+          "In-memory MongoDB is strictly forbidden in production mode. Configure a persistent MONGO_URI."
+        );
+      }
+
+      console.log("Starting in-memory MongoDB server for local development...");
       mongoServer = await MongoMemoryServer.create({
         instance: {
           port: 27017,
@@ -19,7 +59,7 @@ const connectDB = async () => {
           version: "6.0.5",
           skipMD5: true,
         },
-        debug: true,
+        debug: false,
         startTimeout: 300000, // 5 minutes timeout
       });
       mongoUri = mongoServer.getUri();
