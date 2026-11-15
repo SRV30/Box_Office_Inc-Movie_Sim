@@ -27,6 +27,7 @@ const talentHistorySchema = new mongoose.Schema({
 });
 
 talentHistorySchema.index({ gameStateId: 1, talentId: 1, type: 1 });
+talentHistorySchema.index({ gameStateId: 1, type: 1, createdAt: -1 });
 talentHistorySchema.index({ gameStateId: 1, createdAt: -1 });
 
 const TalentHistory = mongoose.model("TalentHistory", talentHistorySchema);
