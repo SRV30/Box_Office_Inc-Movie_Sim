@@ -8,6 +8,8 @@ import rivalStudioService from "../rivalStudioService.js";
  * bulk-persisted database operations, and bounded memory footprints.
  */
 
+let rivalsInitialized = false;
+
 /**
  * Advances the simulation by one week for the given studio with performance profiling.
  *
@@ -22,11 +24,17 @@ export const runWeeklySimulation = async (gameState, studio) => {
 
   gameState.currentWeek += 1;
 
-  // Run AI Rival Studio updates
-  await rivalStudioService.initializeRivalStudios();
-  await rivalStudioService.simulateRivalTurn();
+  // Initialize AI Rival Studios once per process lifecycle, then execute tick concurrently
+  if (!rivalsInitialized) {
+    await rivalStudioService.initializeRivalStudios();
+    rivalsInitialized = true;
+  }
 
-  const result = await processWeeklyTick(gameState, studio);
+  // Process rival studio turns and user simulation tick concurrently
+  const [, result] = await Promise.all([
+    rivalStudioService.simulateRivalTurn(),
+    processWeeklyTick(gameState, studio),
+  ]);
 
   const endHrTime = process.hrtime.bigint();
   const endMemory = process.memoryUsage().heapUsed;
