@@ -164,4 +164,17 @@ describe("Dynamic News & Media Engine (issue #543)", () => {
       NewsItem.findOne = originalFindOne;
     }
   });
+
+  it("declares dedupeKey index canonically without duplicate declarations", () => {
+    const indexes = NewsItem.schema.indexes();
+    const dedupeIndexes = indexes.filter(
+      ([fields]) => fields && fields.dedupeKey !== undefined
+    );
+
+    assert.strictEqual(dedupeIndexes.length, 1, "dedupeKey should only have one index declared");
+    const [fields, options] = dedupeIndexes[0];
+    assert.strictEqual(fields.dedupeKey, 1);
+    assert.strictEqual(options.unique, true);
+    assert.strictEqual(options.sparse, true);
+  });
 });

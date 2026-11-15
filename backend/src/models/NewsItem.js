@@ -44,7 +44,7 @@ const newsItemSchema = new mongoose.Schema(
       default: NEWS_REGIONS.GLOBAL,
     },
 
-    dedupeKey: { type: String, default: null, sparse: true },
+    dedupeKey: { type: String, default: null },
     triggerEvent: { type: String, default: "" },
     socialAmplified: { type: Boolean, default: false },
 
