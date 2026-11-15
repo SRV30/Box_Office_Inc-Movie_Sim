@@ -156,6 +156,10 @@ test("Test Screenings & Reshoots API", async (t) => {
     const competitorMovie = await Movie.create({
       title: "Competitor Film",
       studioId: competitor.studio._id,
+      scriptId: "comp-scr-1",
+      directorId: "comp-dir-1",
+      leadActorId: "comp-act-1",
+      crewTeamId: "comp-crew-1",
       budget: 1000000,
       createdWeek: 1,
       status: "POST_PRODUCTION",
