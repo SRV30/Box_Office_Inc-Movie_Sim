@@ -86,3 +86,31 @@ export const protect = async (req, res, next) => {
     );
   }
 };
+
+/**
+ * Authorization guard for admin / operations roles or internal service calls
+ */
+export const requireRole = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Authentication required.",
+        requestId: req.requestId,
+      });
+    }
+
+    const userRole = req.user.role || "player";
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        code: "FORBIDDEN",
+        message: "You do not have permission to access this resource.",
+        requestId: req.requestId,
+      });
+    }
+
+    next();
+  };
+};

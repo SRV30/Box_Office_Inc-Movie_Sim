@@ -68,6 +68,7 @@ import boxOfficeRoutes from "./routes/boxOfficeRoutes.js";
 import merchandiseEconomyRoutes from "./routes/merchandiseEconomyRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import simulationJobRoutes from "./routes/simulationJobRoutes.js";
+import observabilityRoutes from "./routes/observabilityRoutes.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -186,6 +187,7 @@ app.use("/api/scandals", apiRateLimiter, scandalRoutes);
 app.use("/api/awards", apiRateLimiter, awardsRoutes);
 app.use("/api/box-office", apiRateLimiter, boxOfficeRoutes);
 app.use("/api/simulation", apiRateLimiter, simulationJobRoutes);
+app.use("/api/observability", observabilityRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
