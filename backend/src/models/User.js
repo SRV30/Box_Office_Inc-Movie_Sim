@@ -60,6 +60,12 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
+    role: {
+      type: String,
+      enum: ["player", "admin", "operations"],
+      default: "player",
+    },
+
     studio: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Studio",
