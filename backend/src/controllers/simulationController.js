@@ -24,8 +24,10 @@ import { withTransaction } from "../utils/financeTransactionHelper.js";
 import logger from "../utils/logger.js";
 
 export const simulateWeek = async (req, res) => {
+  let lockAcquired = false;
+
   try {
-    const { weeks = 1 } = req.body;
+    const { weeks = 1, expectedWeek = null } = req.body;
     const parsedWeeks = parseInt(weeks, 10);
 
     if (isNaN(parsedWeeks) || parsedWeeks <= 0) {
@@ -36,6 +38,73 @@ export const simulateWeek = async (req, res) => {
     }
 
     const numWeeks = Math.min(52, parsedWeeks);
+    const idempotencyKey =
+      req.headers["idempotency-key"] ||
+      req.headers["x-idempotency-key"] ||
+      req.body.idempotencyKey;
+
+    // Check pre-existing state for idempotency or stale week validation
+    const existingState = await GameState.findOne({ user: req.user._id });
+    if (!existingState) {
+      return res.status(404).json({ message: "Game state or studio not found" });
+    }
+
+    // Return deterministic cached result for retried idempotent requests
+    if (
+      idempotencyKey &&
+      existingState.lastTickIdempotencyKey === idempotencyKey &&
+      existingState.lastTickResult
+    ) {
+      return res.status(200).json({
+        ...existingState.lastTickResult,
+        idempotentReplay: true,
+      });
+    }
+
+    // Reject stale simulation requests expecting an outdated game week
+    if (expectedWeek !== null && expectedWeek !== undefined) {
+      const parsedExpectedWeek = parseInt(expectedWeek, 10);
+      if (!isNaN(parsedExpectedWeek) && existingState.currentWeek !== parsedExpectedWeek) {
+        return res.status(409).json({
+          success: false,
+          message: `Stale simulation request: current week is ${existingState.currentWeek}, but request expected week ${parsedExpectedWeek}.`,
+          currentWeek: existingState.currentWeek,
+        });
+      }
+    }
+
+    // Concurrency guard: atomically lock tick execution for this studio
+    const lockDurationMs = 60 * 1000;
+    const staleLockThreshold = new Date(Date.now() - lockDurationMs);
+
+    const lockedState = await GameState.findOneAndUpdate(
+      {
+        user: req.user._id,
+        $or: [
+          { isSimulating: false },
+          { isSimulating: null },
+          { simulatingLockedAt: { $lt: staleLockThreshold } },
+          { simulatingLockedAt: null },
+        ],
+      },
+      {
+        $set: {
+          isSimulating: true,
+          simulatingLockedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" }
+    );
+
+    if (!lockedState) {
+      return res.status(409).json({
+        success: false,
+        message: "Simulation tick already in progress for this studio. Concurrent ticks are prohibited.",
+        currentWeek: existingState.currentWeek,
+      });
+    }
+
+    lockAcquired = true;
 
     // Accumulate notifications generated during the simulation ticks
     let newNotifications = [];
@@ -49,14 +118,9 @@ export const simulateWeek = async (req, res) => {
     let startWeek;
     let startFans;
     let startPrestige;
+    let responsePayload = null;
 
     await withTransaction(async (session) => {
-      // Load the documents *inside* the transaction and bind them to the
-      // session so the version this transaction commits is the version it
-      // read. Loading them outside the session (as before) left a window
-      // where another request could save the same Studio/GameState doc
-      // in between, causing the transactional save at the end to fail
-      // with a Mongoose VersionError against a now-stale in-memory copy.
       gameState = await GameState.findOne({ user: req.user._id }).session(session);
       studio = await Studio.findOne({ owner: req.user._id }).session(session);
 
@@ -72,9 +136,8 @@ export const simulateWeek = async (req, res) => {
 
       // Run simulation multiple times
       for (let i = 0; i < numWeeks; i++) {
-        const expectedWeek = startWeek + i;
-        if (gameState.currentWeek > expectedWeek) {
-          // This week was already processed (e.g. due to server restart), skip it
+        const expectedNextWeek = startWeek + i;
+        if (gameState.currentWeek > expectedNextWeek) {
           continue;
         }
 
@@ -123,36 +186,48 @@ export const simulateWeek = async (req, res) => {
         await TalentHistory.insertMany(newHistories, { session });
       }
 
+      const endFans = studio.fans || 0;
+      const endPrestige = studio.prestige || 0;
+
+      responsePayload = {
+        message: `${numWeeks} week(s) simulated successfully`,
+        currentWeek: gameState.currentWeek,
+        summary: {
+          weeksSimulated: numWeeks,
+          startWeek,
+          endWeek: gameState.currentWeek,
+          fansGained: endFans - startFans,
+          prestigeGained: endPrestige - startPrestige,
+          notificationCount: newNotifications.length,
+          newNotifications: newNotifications.slice(-10),
+          rivalReleases: allRivalReleases.slice(-8),
+        },
+      };
+
+      // Atomically persist idempotency cache and clear in-flight simulation lock
+      gameState.isSimulating = false;
+      gameState.simulatingLockedAt = null;
+      gameState.lastTickIdempotencyKey = idempotencyKey || null;
+      gameState.lastTickResult = responsePayload;
+
       await studio.save({ session });
       await gameState.save({ session });
     });
 
-    const endFans = studio.fans || 0;
-    const endPrestige = studio.prestige || 0;
-
-    // Summary data — include rival releases for the frontend modal
-    const summary = {
-      weeksSimulated: numWeeks,
-      startWeek,
-      endWeek: gameState.currentWeek,
-      fansGained: endFans - startFans,
-      prestigeGained: endPrestige - startPrestige,
-      notificationCount: newNotifications.length,
-      newNotifications: newNotifications.slice(-10), // Last 10
-      rivalReleases: allRivalReleases.slice(-8),      // Last 8 rival releases
-    };
-
-    res.status(200).json({
-      message: `${numWeeks} week(s) simulated successfully`,
-      currentWeek: gameState.currentWeek,
-      summary
-    });
+    res.status(200).json(responsePayload);
   } catch (error) {
     if (error.statusCode === 404) {
       return res.status(404).json({ message: error.message });
     }
-        logger.error("Simulation Transaction Error", { error: error.message });
+    logger.error("Simulation Transaction Error", { error: error.message });
     res.status(500).json({ success: false, message: `Operation rolled back due to: ${error.message}` });
+  } finally {
+    if (lockAcquired) {
+      await GameState.updateOne(
+        { user: req.user._id, isSimulating: true },
+        { $set: { isSimulating: false, simulatingLockedAt: null } }
+      ).catch(() => {});
+    }
   }
 };
 
