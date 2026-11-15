@@ -1,82 +1,93 @@
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import ErrorBoundary from "./components/ErrorBoundary";
-import Register from "./pages/auth/Register";
-import Login from "./pages/auth/Login";
+const Register = lazy(() => import("./pages/auth/Register"));
+const Login = lazy(() => import("./pages/auth/Login"));
 
-import Dashboard from "./pages/dashboard/Dashboard";
-import SimulationAnalyticsDashboard from "./pages/analytics/SimulationAnalyticsDashboard";
+const Dashboard = lazy(() => import("./pages/dashboard/Dashboard"));
+const SimulationAnalyticsDashboard = lazy(() => import("./pages/analytics/SimulationAnalyticsDashboard"));
 
 import ProtectedRoute from "./routes/ProtectedRoute";
-import Scripts from "./pages/scripts/Scripts";
-import Writers from "./pages/writers/Writers";
-import Directors from "./pages/directors/Directors";
-import Actors from "./pages/actors/Actors";
-import ComposersHub from "./pages/talent/ComposersHub";
-import CrewMarket from "./pages/crew/CrewMarket";
-import OwnedCrew from "./pages/crew/OwnedCrew";
-import CrewManagementHub from "./pages/crew/CrewManagementHub";
-import ActiveMovies from "./pages/movies/ActiveMovies";
-import CreateMovie from "./pages/movies/CreateMovie";
-import MovieDetails from "./pages/movies/MovieDetails";
-import MarketingStrategies from "./pages/movies/MarketingStrategies";
-import SocialMediaHub from "./pages/marketing/SocialMediaHub";
-import ReadyForRelease from "./pages/movies/ReadyForRelease";
-import ReleaseResult from "./pages/movies/ReleaseResult";
-import MovieLibrary from "./pages/movies/MovieLibrary";
-import ReleasedMovieDetail from "./pages/movies/ReleasedMovieDetail";
-import ReviewDashboard from "./pages/movies/ReviewDashboard";
-import ProductionQueue from "./pages/movies/ProductionQueue";
-import MovieComparison from "./pages/movies/MovieComparison";
-import StreamingDeals from "./pages/movies/StreamingDeals";
-import StreamingBiddingHall from "./pages/streaming/StreamingBiddingHall";
-import StreamingPlatformManager from "./pages/streaming/StreamingPlatformManager";
-import RegionalBoxOfficeHub from "./pages/movies/RegionalBoxOfficeHub";
-import CinemaMarketsHub from "./pages/movies/CinemaMarketsHub";
-import TVShowsHub from "./pages/tvshows/TVShowsHub";
-import ProduceTVShow from "./pages/tvshows/ProduceTVShow";
-import TVShowDetailView from "./pages/tvshows/TVShowDetailView";
-import StudioStats from "./pages/studio/StudioStats";
-import FinancialHistory from "./pages/studio/FinancialHistory";
-import FinancialForecast from "./pages/studio/FinancialForecast";
-import MerchDashboard from "./pages/merch/MerchDashboard";
-import MerchandiseEconomyHub from "./pages/merch/MerchandiseEconomyHub";
-import AwardsHistory from "./pages/studio/AwardsHistory";
-import AwardsCampaign from "./pages/awards/AwardsCampaign";
-import MarketDashboard from "./pages/dashboard/MarketDashboard";
-import Franchises from "./pages/studio/Franchises";
-import FranchiseDetail from "./pages/studio/FranchiseDetail";
-import FranchiseUniverseHub from "./pages/studio/FranchiseUniverseHub";
-import Leaderboard from "./pages/studio/Leaderboard";
-import HistoricRecords from "./pages/studio/HistoricRecords";
-import FanClubHub from "./pages/studio/FanClubHub";
-import TalentProfile from "./pages/talent/TalentProfile";
-import TalentContractsManager from "./pages/talent/TalentContractsManager";
-import DirectorProfile from "./pages/directors/DirectorProfile";
-import WriterProfile from "./pages/writers/WriterProfile";
-import Notifications from "./pages/notifications/Notifications";
-import Settings from "./pages/settings/Settings";
-import AuthMonitoring from "./pages/auth/AuthMonitoring";
-import NewsFeed from "./pages/news/NewsFeed";
-import NewsDetail from "./pages/news/NewsDetail";
+const Scripts = lazy(() => import("./pages/scripts/Scripts"));
+const Writers = lazy(() => import("./pages/writers/Writers"));
+const Directors = lazy(() => import("./pages/directors/Directors"));
+const Actors = lazy(() => import("./pages/actors/Actors"));
+const ComposersHub = lazy(() => import("./pages/talent/ComposersHub"));
+const CrewMarket = lazy(() => import("./pages/crew/CrewMarket"));
+const OwnedCrew = lazy(() => import("./pages/crew/OwnedCrew"));
+const CrewManagementHub = lazy(() => import("./pages/crew/CrewManagementHub"));
+const ActiveMovies = lazy(() => import("./pages/movies/ActiveMovies"));
+const CreateMovie = lazy(() => import("./pages/movies/CreateMovie"));
+const MovieDetails = lazy(() => import("./pages/movies/MovieDetails"));
+const MarketingStrategies = lazy(() => import("./pages/movies/MarketingStrategies"));
+const SocialMediaHub = lazy(() => import("./pages/marketing/SocialMediaHub"));
+const ReadyForRelease = lazy(() => import("./pages/movies/ReadyForRelease"));
+const ReleaseResult = lazy(() => import("./pages/movies/ReleaseResult"));
+const MovieLibrary = lazy(() => import("./pages/movies/MovieLibrary"));
+const ReleasedMovieDetail = lazy(() => import("./pages/movies/ReleasedMovieDetail"));
+const ReviewDashboard = lazy(() => import("./pages/movies/ReviewDashboard"));
+const ProductionQueue = lazy(() => import("./pages/movies/ProductionQueue"));
+const MovieComparison = lazy(() => import("./pages/movies/MovieComparison"));
+const StreamingDeals = lazy(() => import("./pages/movies/StreamingDeals"));
+const StreamingBiddingHall = lazy(() => import("./pages/streaming/StreamingBiddingHall"));
+const StreamingPlatformManager = lazy(() => import("./pages/streaming/StreamingPlatformManager"));
+const RegionalBoxOfficeHub = lazy(() => import("./pages/movies/RegionalBoxOfficeHub"));
+const CinemaMarketsHub = lazy(() => import("./pages/movies/CinemaMarketsHub"));
+const TVShowsHub = lazy(() => import("./pages/tvshows/TVShowsHub"));
+const ProduceTVShow = lazy(() => import("./pages/tvshows/ProduceTVShow"));
+const TVShowDetailView = lazy(() => import("./pages/tvshows/TVShowDetailView"));
+const StudioStats = lazy(() => import("./pages/studio/StudioStats"));
+const FinancialHistory = lazy(() => import("./pages/studio/FinancialHistory"));
+const FinancialForecast = lazy(() => import("./pages/studio/FinancialForecast"));
+const MerchDashboard = lazy(() => import("./pages/merch/MerchDashboard"));
+const MerchandiseEconomyHub = lazy(() => import("./pages/merch/MerchandiseEconomyHub"));
+const AwardsHistory = lazy(() => import("./pages/studio/AwardsHistory"));
+const AwardsCampaign = lazy(() => import("./pages/awards/AwardsCampaign"));
+const MarketDashboard = lazy(() => import("./pages/dashboard/MarketDashboard"));
+const Franchises = lazy(() => import("./pages/studio/Franchises"));
+const FranchiseDetail = lazy(() => import("./pages/studio/FranchiseDetail"));
+const FranchiseUniverseHub = lazy(() => import("./pages/studio/FranchiseUniverseHub"));
+const Leaderboard = lazy(() => import("./pages/studio/Leaderboard"));
+const HistoricRecords = lazy(() => import("./pages/studio/HistoricRecords"));
+const FanClubHub = lazy(() => import("./pages/studio/FanClubHub"));
+const TalentProfile = lazy(() => import("./pages/talent/TalentProfile"));
+const TalentContractsManager = lazy(() => import("./pages/talent/TalentContractsManager"));
+const DirectorProfile = lazy(() => import("./pages/directors/DirectorProfile"));
+const WriterProfile = lazy(() => import("./pages/writers/WriterProfile"));
+const Notifications = lazy(() => import("./pages/notifications/Notifications"));
+const Settings = lazy(() => import("./pages/settings/Settings"));
+const AuthMonitoring = lazy(() => import("./pages/auth/AuthMonitoring"));
+const NewsFeed = lazy(() => import("./pages/news/NewsFeed"));
+const NewsDetail = lazy(() => import("./pages/news/NewsDetail"));
 import Toast from "./components/common/Toast";
-import RivalStudios from "./pages/rivals/RivalStudios";
-import RivalIntelligence from "./pages/rivals/RivalIntelligence";
-import TalentAcademy from "./pages/talent/TalentAcademy";
-import TrophyRoom from "./pages/awards/TrophyRoom";
-import AwardsSeasonDashboard from "./pages/awards/AwardsSeasonDashboard";
-import StudioUpgrades from "./pages/studio/StudioUpgrades";
-import UnionManager from "./pages/studio/UnionManager";
-import TalentRelationshipsHub from "./pages/talent/TalentRelationshipsHub";
-import PRCrisisCenter from "./pages/studio/PRCrisisCenter";
-import CelebrityScandalHub from "./pages/studio/CelebrityScandalHub";
-import FacilityManager from "./pages/studio/FacilityManager";
-import SyndicationManager from "./pages/studio/SyndicationManager";
-import FestivalCircuit from "./pages/studio/FestivalCircuit";
-import StudioHQ from "./pages/studio/StudioHQ";
-import AgencyPackagingHub from "./pages/talent/AgencyPackagingHub";
+const RivalStudios = lazy(() => import("./pages/rivals/RivalStudios"));
+const RivalIntelligence = lazy(() => import("./pages/rivals/RivalIntelligence"));
+const TalentAcademy = lazy(() => import("./pages/talent/TalentAcademy"));
+const TrophyRoom = lazy(() => import("./pages/awards/TrophyRoom"));
+const AwardsSeasonDashboard = lazy(() => import("./pages/awards/AwardsSeasonDashboard"));
+const StudioUpgrades = lazy(() => import("./pages/studio/StudioUpgrades"));
+const UnionManager = lazy(() => import("./pages/studio/UnionManager"));
+const TalentRelationshipsHub = lazy(() => import("./pages/talent/TalentRelationshipsHub"));
+const PRCrisisCenter = lazy(() => import("./pages/studio/PRCrisisCenter"));
+const CelebrityScandalHub = lazy(() => import("./pages/studio/CelebrityScandalHub"));
+const FacilityManager = lazy(() => import("./pages/studio/FacilityManager"));
+const SyndicationManager = lazy(() => import("./pages/studio/SyndicationManager"));
+const FestivalCircuit = lazy(() => import("./pages/studio/FestivalCircuit"));
+const StudioHQ = lazy(() => import("./pages/studio/StudioHQ"));
+const AgencyPackagingHub = lazy(() => import("./pages/talent/AgencyPackagingHub"));
 import { TutorialProvider } from "./context/TutorialContext";
 import TutorialGuideOverlay from "./components/tutorial/TutorialGuideOverlay";
+
+
+function RouteLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
+      <div className="h-10 w-10 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mb-4" />
+      <p className="text-sm font-medium tracking-wide text-slate-400">Loading module...</p>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -84,6 +95,7 @@ function App() {
       <ErrorBoundary>
         <TutorialProvider>
           <TutorialGuideOverlay />
+          <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
         <Route path="/register" element={<Register />} />
 
@@ -671,6 +683,7 @@ function App() {
           }
         />
       </Routes>
+          </Suspense>
       <Toast />
       </TutorialProvider>
     </ErrorBoundary>
