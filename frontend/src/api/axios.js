@@ -187,12 +187,64 @@ function normalizeApiError(error) {
   };
 }
 
-function shouldRetry(status, url = "") {
+export const SAFE_HTTP_METHODS = new Set(["get", "head", "options"]);
+
+export function isRetryableRequest(config, status) {
+  if (!config) return false;
+  const url = config.url || "";
+  const method = (config.method || "get").toLowerCase();
+
+  // Never retry auth endpoints automatically
   if (isAuthEndpoint(url)) return false;
+
+  // Never retry 4xx client errors (400, 401, 403, 404, 422, etc.) except 429 Too Many Requests
+  if (status && status >= 400 && status < 500 && status !== 429) {
+    return false;
+  }
+
+  const isSafeMethod = SAFE_HTTP_METHODS.has(method);
+  const hasIdempotencyKey = Boolean(
+    config.headers?.["Idempotency-Key"] ||
+    config.headers?.["idempotency-key"] ||
+    config.headers?.["X-Idempotency-Key"] ||
+    config.headers?.["x-idempotency-key"] ||
+    config.isIdempotent === true
+  );
+
+  // Prohibit automatic replaying of non-idempotent mutations without an explicit idempotency guarantee
+  if (!isSafeMethod && !hasIdempotencyKey) {
+    return false;
+  }
+
+  // Network error (no response)
   if (!status) return true;
+
+  // Transient 5xx server errors
   if (status >= 500) return true;
+
+  // Rate limit
   if (status === 429) return true;
+
   return false;
+}
+
+export function parseRetryAfterDelay(response) {
+  if (!response?.headers) return null;
+  const retryAfter = response.headers["retry-after"];
+  if (!retryAfter) return null;
+
+  const seconds = Number(retryAfter);
+  if (!isNaN(seconds) && seconds > 0) {
+    return Math.min(seconds * 1000, 30 * 1000);
+  }
+
+  const dateMs = Date.parse(retryAfter);
+  if (!isNaN(dateMs)) {
+    const diff = dateMs - Date.now();
+    return Math.min(Math.max(diff, 500), 30 * 1000);
+  }
+
+  return null;
 }
 
 api.interceptors.request.use((config) => {
@@ -235,12 +287,19 @@ api.interceptors.response.use(
     }
 
     const retryCount = originalRequest._retryCount || 0;
+    const status = error.response?.status;
+
     if (
       retryCount < MAX_RETRIES &&
-      shouldRetry(error.response?.status, originalRequest.url)
+      isRetryableRequest(originalRequest, status)
     ) {
       originalRequest._retryCount = retryCount + 1;
-      const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount);
+
+      const retryAfterDelay = parseRetryAfterDelay(error.response);
+      const jitter = Math.random() * 150;
+      const exponentialDelay = RETRY_DELAY_BASE * Math.pow(2, retryCount) + jitter;
+      const delay = retryAfterDelay || exponentialDelay;
+
       await new Promise((resolve) => setTimeout(resolve, delay));
       return api(originalRequest);
     }
