@@ -2,6 +2,72 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Known development and test secrets that must NEVER be used in production
+export const KNOWN_PLACEHOLDER_SECRETS = [
+  "box_office_inc_dev_access_token_secret_key_32chars",
+  "box_office_inc_dev_refresh_token_secret_key_32chars",
+  "test-access-secret-not-for-production",
+  "test-refresh-secret-not-for-production",
+  "secret",
+  "jwtsecret",
+  "jwt_secret",
+  "changeme",
+  "placeholder",
+  "your_jwt_secret",
+  "your-secret-key",
+  "default_secret",
+];
+
+export const validateProductionSecrets = (envVars = process.env) => {
+  if (envVars.NODE_ENV !== "production") return true;
+
+  const access = envVars.JWT_ACCESS_SECRET;
+  const refresh = envVars.JWT_REFRESH_SECRET;
+
+  if (!access || !refresh) {
+    throw new Error("CRITICAL: Missing JWT_ACCESS_SECRET or JWT_REFRESH_SECRET in production.");
+  }
+
+  const isPlaceholder = (secret) => {
+    const s = secret.trim().toLowerCase();
+    return KNOWN_PLACEHOLDER_SECRETS.some(
+      (p) => s === p.toLowerCase() || s.includes("changeme") || s.includes("placeholder")
+    );
+  };
+
+  if (isPlaceholder(access)) {
+    throw new Error(
+      "CRITICAL: Production startup rejected: JWT_ACCESS_SECRET contains an insecure development placeholder."
+    );
+  }
+
+  if (isPlaceholder(refresh)) {
+    throw new Error(
+      "CRITICAL: Production startup rejected: JWT_REFRESH_SECRET contains an insecure development placeholder."
+    );
+  }
+
+  if (access.length < 32) {
+    throw new Error(
+      `CRITICAL: JWT_ACCESS_SECRET must be at least 32 characters in production (got ${access.length}).`
+    );
+  }
+
+  if (refresh.length < 32) {
+    throw new Error(
+      `CRITICAL: JWT_REFRESH_SECRET must be at least 32 characters in production (got ${refresh.length}).`
+    );
+  }
+
+  if (access === refresh) {
+    throw new Error(
+      "CRITICAL: JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must not be identical in production."
+    );
+  }
+
+  return true;
+};
+
 // In production, strictly enforce all required environment variables
 if (process.env.NODE_ENV === "production") {
   const requiredEnvVars = [
@@ -18,6 +84,8 @@ if (process.env.NODE_ENV === "production") {
       `CRITICAL: Missing required environment variables: ${missingEnvVars.join(", ")}. Check your .env file.`,
     );
   }
+
+  validateProductionSecrets(process.env);
 }
 
 // Development / test defaults for zero-config onboarding
