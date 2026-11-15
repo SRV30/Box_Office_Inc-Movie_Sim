@@ -21,10 +21,12 @@ export async function initializeRivalStudios() {
 
 /**
  * 2. Automated Movie Production (Tick / Simulation Step)
+ * Batches writes using bulkWrite for high-efficiency simulation scaling.
  */
 export async function simulateRivalTurn() {
   if (RivalStudio.db?.readyState !== 1) return;
   const rivalStudios = await RivalStudio.find();
+  const bulkOps = [];
 
   for (let studio of rivalStudios) {
     if (studio.budget >= 1000000) {
@@ -36,43 +38,60 @@ export async function simulateRivalTurn() {
       const repBonus = (studio.reputation / 100) * movieBudget * 0.3;
       const totalBoxOffice = Math.floor(baseReturn + repBonus);
 
-      studio.budget = studio.budget - movieBudget + totalBoxOffice;
-      studio.producedMovies.push({
+      const newBudget = studio.budget - movieBudget + totalBoxOffice;
+      const producedMovie = {
         title,
         genre,
         budget: movieBudget,
         boxOffice: totalBoxOffice,
-      });
+      };
 
-      await studio.save();
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: studio._id },
+          update: {
+            $set: { budget: newBudget },
+            $push: { producedMovies: producedMovie },
+          },
+        },
+      });
     }
+  }
+
+  if (bulkOps.length > 0) {
+    await RivalStudio.bulkWrite(bulkOps);
   }
 }
 
 /**
- * 3. Market Competition Logic
+ * 3. Fetch Rival Studio Intelligence for the player
  */
-export async function calculatePlayerRevenueWithCompetition(playerMovie) {
-  const rivals = await RivalStudio.find();
-  
-  let competingRivalMovies = 0;
-  rivals.forEach((studio) => {
-    const recentSameGenre = studio.producedMovies.filter(
-      (m) => m.genre === playerMovie.genre
-    );
-    competingRivalMovies += recentSameGenre.length;
-  });
-
-  const competitionPenalty = Math.min(competingRivalMovies * 0.1, 0.5);
-  const baseRevenue = playerMovie.budget * (1.2 + Math.random() * 0.6);
-  
-  const finalPlayerRevenue = Math.floor(baseRevenue * (1 - competitionPenalty));
-  return { finalPlayerRevenue, competitionPenalty };
+export async function getRivalStudios() {
+  if (RivalStudio.db?.readyState !== 1) return [];
+  return await RivalStudio.find().select('name budget reputation producedMovies');
 }
 
-// Default export object to support default imports across tests
+/**
+ * 4. Sabotage or Spy on a Rival Studio
+ */
+export async function sabotageRival(rivalId, actionType) {
+  if (RivalStudio.db?.readyState !== 1) return null;
+  const rival = await RivalStudio.findById(rivalId);
+  if (!rival) throw new Error('Rival studio not found');
+
+  if (actionType === 'leak_script') {
+    rival.reputation = Math.max(0, rival.reputation - 10);
+  } else if (actionType === 'poach_talent') {
+    rival.budget = Math.max(0, rival.budget - 500000);
+  }
+
+  await rival.save();
+  return rival;
+}
+
 export default {
   initializeRivalStudios,
   simulateRivalTurn,
-  calculatePlayerRevenueWithCompetition,
+  getRivalStudios,
+  sabotageRival,
 };
