@@ -179,6 +179,7 @@ app.use("/api/seeder", apiRateLimiter, seederRoutes);
 app.use("/api/relationships", apiRateLimiter, relationshipRoutes);
 app.use("/api/cinema-markets", apiRateLimiter, cinemaMarketRoutes);
 app.use("/api/social", apiRateLimiter, socialMediaRoutes);
+app.use("/api/merchandise", apiRateLimiter, merchandiseRoutes);
 app.use("/api/merchandise-economy", apiRateLimiter, merchandiseEconomyRoutes);
 app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
 app.use("/api/tutorial", apiRateLimiter, tutorialRoutes);
