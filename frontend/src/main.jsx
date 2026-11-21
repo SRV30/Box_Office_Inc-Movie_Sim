@@ -6,6 +6,7 @@ import App from "./App.jsx";
 import { Provider } from "react-redux";
 import { store } from "./app/store";
 import { ThemeProvider } from "./context/ThemeContext";
+import { AccessibilityProvider } from "./context/AccessibilityContext";
 
 const rawGoogleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const googleClientId =
@@ -20,13 +21,15 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={store}>
       <ThemeProvider>
-        {googleClientId ? (
-          <GoogleOAuthProvider clientId={googleClientId}>
+        <AccessibilityProvider>
+          {googleClientId ? (
+            <GoogleOAuthProvider clientId={googleClientId}>
+              <App />
+            </GoogleOAuthProvider>
+          ) : (
             <App />
-          </GoogleOAuthProvider>
-        ) : (
-          <App />
-        )}
+          )}
+        </AccessibilityProvider>
       </ThemeProvider>
     </Provider>
   </StrictMode>,
