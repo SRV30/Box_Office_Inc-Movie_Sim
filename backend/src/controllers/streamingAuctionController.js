@@ -49,6 +49,17 @@ export const createStreamingAuction = async (req, res) => {
 export const executeAuctionBidding = async (req, res) => {
   try {
     const { auctionId } = req.params;
+
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const ownedAuction = await StreamingAuction.findOne({ _id: auctionId, studioId: studio._id });
+    if (!ownedAuction) {
+      return res.status(404).json({ success: false, message: "Auction not found" });
+    }
+
     const gameState = await GameState.findOne({ user: req.user._id });
     await initializeStreamingPlatforms(gameState);
     const auction = await runStreamingAuction(auctionId, gameState);
@@ -63,8 +74,17 @@ export const submitCounteroffer = async (req, res) => {
     const { auctionId } = req.params;
     const { amount, platformId } = req.body;
 
-    const auction = await StreamingAuction.findById(auctionId);
-    if (!auction || auction.status !== "OPEN") {
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const auction = await StreamingAuction.findOne({ _id: auctionId, studioId: studio._id });
+    if (!auction) {
+      return res.status(404).json({ success: false, message: "Auction not found" });
+    }
+
+    if (auction.status !== "OPEN") {
       return res.status(400).json({ success: false, message: "Auction not open for counteroffers." });
     }
 

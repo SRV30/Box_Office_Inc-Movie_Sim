@@ -72,3 +72,66 @@ body {
 .light .bg-indigo-600 .text-white {
   color: #ffffff !important;
 }
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-reduced-motion="off"]) *,
+  html:not([data-reduced-motion="off"]) *::before,
+  html:not([data-reduced-motion="off"]) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html.reduced-motion *,
+html.reduced-motion *::before,
+html.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Accessibility: High Contrast */
+html.high-contrast {
+  --border: #475569;
+  --muted: #cbd5e1;
+}
+
+html.high-contrast.dark {
+  --bg: #000000;
+  --card: #080808;
+  --card2: #121212;
+  --text: #ffffff;
+  --border: #64748b;
+  --muted: #e2e8f0;
+}
+
+html.high-contrast .border-slate-800,
+html.high-contrast .border-slate-700 {
+  border-color: #64748b !important;
+}
+
+html.high-contrast button,
+html.high-contrast a,
+html.high-contrast input,
+html.high-contrast select {
+  outline-color: #facc15 !important;
+}
+
+/* Accessibility: Text Scaling */
+html.text-scale-large {
+  font-size: 112.5%; /* 18px base */
+}
+
+html.text-scale-xlarge {
+  font-size: 125%; /* 20px base */
+}
+
+/* Accessibility: Prominent Focus Indicators */
+html.large-focus-indicator *:focus-visible {
+  outline: 3px solid #facc15 !important;
+  outline-offset: 3px !important;
+}

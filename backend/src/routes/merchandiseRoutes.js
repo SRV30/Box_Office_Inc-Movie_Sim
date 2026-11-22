@@ -1,5 +1,5 @@
 import express from "express";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, requireRole } from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validationMiddleware.js";
 import { merchandiseValuationSchema, merchandiseDealSchema } from "../validators/gameplayValidators.js";
 import {
@@ -16,6 +16,7 @@ router.use(protect);
 router.post("/valuation", validate(merchandiseValuationSchema), getMerchandiseValuation);
 router.post("/deals", validate(merchandiseDealSchema), createMerchandiseDeal);
 router.get("/deals", getStudioMerchandiseDeals);
-router.post("/process-weekly", triggerWeeklyMerchandiseProcessing);
+// Internal scheduler / admin operations endpoint only
+router.post("/process-weekly", requireRole("admin", "operations"), triggerWeeklyMerchandiseProcessing);
 
 export default router;
