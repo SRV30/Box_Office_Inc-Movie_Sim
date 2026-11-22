@@ -11,7 +11,6 @@ const cinematicUniverseSchema = new mongoose.Schema(
     universeName: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     phase: {
@@ -46,6 +45,15 @@ const cinematicUniverseSchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
+);
+
+// Compound unique index ensuring universeName is unique per studio, not globally
+cinematicUniverseSchema.index(
+  { studioId: 1, universeName: 1 },
+  {
+    unique: true,
+    collation: { locale: "en", strength: 2 },
+  }
 );
 
 const CinematicUniverse = mongoose.model("CinematicUniverse", cinematicUniverseSchema);

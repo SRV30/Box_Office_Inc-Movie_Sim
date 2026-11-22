@@ -1,17 +1,14 @@
 import MerchandiseProduct from "../models/MerchandiseProduct.js";
 import Studio from "../models/Studio.js";
-import Movie from "../models/Movie.js";
-import TVShow from "../models/TVShowModel.js";
-import Franchise from "../models/Franchise.js";
 import {
   CATEGORY_CONFIGS,
   calculateRestockBatchCost,
   calculateLiquidationValue,
-  simulateWeeklyProductSales,
 } from "../services/simulation/engines/merchandiseEconomyEngine.js";
+import { withTransaction } from "../utils/financeTransactionHelper.js";
 
 /**
- * Lists all merchandise product lines for the authenticated studio
+ * Returns all merchandise products for player studio
  */
 export async function getStudioProducts(req, res, next) {
   try {
@@ -23,7 +20,6 @@ export async function getStudioProducts(req, res, next) {
     const products = await MerchandiseProduct.find({ studioId: studio._id }).sort({
       createdAt: -1,
     });
-
     res.status(200).json({ success: true, products });
   } catch (error) {
     next(error);
@@ -31,46 +27,40 @@ export async function getStudioProducts(req, res, next) {
 }
 
 /**
- * Returns studio IPs eligible to spawn merchandise lines
+ * Gets product line detail by ID (studio-scoped)
  */
-export async function getEligibleIPs(req, res, next) {
+export async function getProductById(req, res, next) {
   try {
+    const { id } = req.params;
     const studio = await Studio.findOne({ owner: req.user._id });
     if (!studio) {
       return res.status(404).json({ success: false, message: "Studio not found" });
     }
 
-    const [movies, tvShows, franchises] = await Promise.all([
-      Movie.find({ studioId: studio._id, status: "RELEASED" }).select("title genre worldwideGross quality"),
-      TVShow.find({ studioId: studio._id }).select("title genre quality popularity"),
-      Franchise.find({ studioId: studio._id }).select("name popularity totalRevenue"),
-    ]);
+    const product = await MerchandiseProduct.findOne({ _id: id, studioId: studio._id });
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
 
-    res.status(200).json({
-      success: true,
-      eligibleIPs: {
-        movies,
-        tvShows,
-        franchises,
-      },
-    });
+    const liquidation = calculateLiquidationValue(product);
+    res.status(200).json({ success: true, product, liquidation });
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * Launches a new product line with initial batch production
+ * Launches a new physical product line attached to an IP (transactional)
  */
 export async function launchProductLine(req, res, next) {
   try {
     const {
-      ipType = "MOVIE",
+      ipType,
       ipId,
       ipTitle,
       productName,
-      category = "ACTION_FIGURES_TOYS",
-      tier = "MASS_MARKET",
+      category,
+      tier = "STANDARD",
       retailPrice,
       initialBatchUnits = 10000,
       seasonalAffinity = "YEAR_ROUND",
@@ -95,7 +85,7 @@ export async function launchProductLine(req, res, next) {
       return res.status(404).json({ success: false, message: "Studio not found" });
     }
 
-    const studioCash = studio.money || studio.cash || 0;
+    const studioCash = studio.money || 0;
     if (studioCash < manufacturingCost) {
       return res.status(400).json({
         success: false,
@@ -103,31 +93,50 @@ export async function launchProductLine(req, res, next) {
       });
     }
 
-    if (studio.money !== undefined) studio.money -= manufacturingCost;
-    if (studio.cash !== undefined) studio.cash = Math.max(0, studio.cash - manufacturingCost);
-    await studio.save();
+    let createdProduct = null;
 
-    const product = await MerchandiseProduct.create({
-      studioId: studio._id,
-      ipType,
-      ipId,
-      ipTitle: ipTitle || "Studio IP",
-      productName: productName.trim(),
-      category,
-      tier,
-      unitManufacturingCost: unitCost,
-      retailPrice: finalRetail,
-      inventoryStock: totalUnits,
-      totalUnitsProduced: totalUnits,
-      totalProductionCost: manufacturingCost,
-      seasonalAffinity,
-      status: "ACTIVE",
+    await withTransaction(async (session) => {
+      const s = await Studio.findOne({
+        _id: studio._id,
+        money: { $gte: manufacturingCost },
+      }).session(session);
+
+      if (!s) {
+        throw new Error("Insufficient funds for manufacturing");
+      }
+
+      s.money -= manufacturingCost;
+      await s.save({ session });
+
+      const [product] = await MerchandiseProduct.create(
+        [
+          {
+            studioId: s._id,
+            ipType,
+            ipId,
+            ipTitle: ipTitle || "Studio IP",
+            productName: productName.trim(),
+            category,
+            tier,
+            unitManufacturingCost: unitCost,
+            retailPrice: finalRetail,
+            inventoryStock: totalUnits,
+            totalUnitsProduced: totalUnits,
+            totalProductionCost: manufacturingCost,
+            seasonalAffinity,
+            status: "ACTIVE",
+          },
+        ],
+        { session }
+      );
+
+      createdProduct = product;
     });
 
     res.status(201).json({
       success: true,
-      message: `Product line "${product.productName}" launched and stocked with ${totalUnits.toLocaleString()} units!`,
-      product,
+      message: `Product line "${createdProduct.productName}" launched and stocked with ${totalUnits.toLocaleString()} units!`,
+      product: createdProduct,
     });
   } catch (error) {
     next(error);
@@ -135,14 +144,19 @@ export async function launchProductLine(req, res, next) {
 }
 
 /**
- * Restocks additional inventory units
+ * Restocks additional inventory units (studio-scoped & atomic)
  */
 export async function restockProductInventory(req, res, next) {
   try {
     const { id } = req.params;
     const { unitsCount = 10000 } = req.body;
 
-    const product = await MerchandiseProduct.findById(id);
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const product = await MerchandiseProduct.findOne({ _id: id, studioId: studio._id });
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
@@ -150,9 +164,7 @@ export async function restockProductInventory(req, res, next) {
     const units = Math.max(1000, Number(unitsCount));
     const cost = calculateRestockBatchCost(product.unitManufacturingCost, units);
 
-    const studio = await Studio.findById(product.studioId);
-    const studioCash = studio?.money || studio?.cash || 0;
-
+    const studioCash = studio.money || 0;
     if (studioCash < cost) {
       return res.status(400).json({
         success: false,
@@ -160,22 +172,35 @@ export async function restockProductInventory(req, res, next) {
       });
     }
 
-    if (studio) {
-      if (studio.money !== undefined) studio.money -= cost;
-      if (studio.cash !== undefined) studio.cash = Math.max(0, studio.cash - cost);
-      await studio.save();
-    }
+    let updatedProduct = null;
 
-    product.inventoryStock += units;
-    product.totalUnitsProduced += units;
-    product.totalProductionCost += cost;
-    product.status = "ACTIVE";
-    await product.save();
+    await withTransaction(async (session) => {
+      const s = await Studio.findOne({
+        _id: studio._id,
+        money: { $gte: cost },
+      }).session(session);
+
+      if (!s) {
+        throw new Error("Insufficient funds for restock");
+      }
+
+      s.money -= cost;
+      await s.save({ session });
+
+      const p = await MerchandiseProduct.findOne({ _id: id, studioId: s._id }).session(session);
+      p.inventoryStock += units;
+      p.totalUnitsProduced += units;
+      p.totalProductionCost += cost;
+      p.status = "ACTIVE";
+      await p.save({ session });
+
+      updatedProduct = p;
+    });
 
     res.status(200).json({
       success: true,
-      message: `Successfully restocked ${units.toLocaleString()} units of "${product.productName}".`,
-      product,
+      message: `Successfully restocked ${units.toLocaleString()} units of "${updatedProduct.productName}".`,
+      product: updatedProduct,
     });
   } catch (error) {
     next(error);
@@ -183,14 +208,19 @@ export async function restockProductInventory(req, res, next) {
 }
 
 /**
- * Updates pricing or discount clearance percentage
+ * Updates pricing or discount clearance percentage (studio-scoped)
  */
 export async function updateProductPricing(req, res, next) {
   try {
     const { id } = req.params;
     const { retailPrice, discountMarkdownPercent } = req.body;
 
-    const product = await MerchandiseProduct.findById(id);
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const product = await MerchandiseProduct.findOne({ _id: id, studioId: studio._id });
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
@@ -218,37 +248,51 @@ export async function updateProductPricing(req, res, next) {
 }
 
 /**
- * Liquidates remaining unsold stock
+ * Liquidates remaining unsold stock (studio-scoped, atomic & idempotent)
  */
 export async function liquidateStock(req, res, next) {
   try {
     const { id } = req.params;
-    const product = await MerchandiseProduct.findById(id);
+
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const product = await MerchandiseProduct.findOne({ _id: id, studioId: studio._id });
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
     const liquidation = calculateLiquidationValue(product);
-    if (liquidation.unitsLiquidated === 0) {
+    if (liquidation.unitsLiquidated === 0 || product.status === "LIQUIDATED") {
       return res.status(400).json({ success: false, message: "No stock to liquidate" });
     }
 
-    const studio = await Studio.findById(product.studioId);
-    if (studio) {
-      if (studio.money !== undefined) studio.money += liquidation.payout;
-      if (studio.cash !== undefined) studio.cash += liquidation.payout;
-      await studio.save();
-    }
+    let updatedProduct = null;
 
-    product.inventoryStock = 0;
-    product.status = "LIQUIDATED";
-    product.totalGrossRevenue += liquidation.payout;
-    await product.save();
+    await withTransaction(async (session) => {
+      const p = await MerchandiseProduct.findOne({ _id: id, studioId: studio._id }).session(session);
+      if (!p || p.inventoryStock <= 0 || p.status === "LIQUIDATED") {
+        throw new Error("No stock available for liquidation");
+      }
+
+      const s = await Studio.findById(studio._id).session(session);
+      s.money += liquidation.payout;
+      await s.save({ session });
+
+      p.inventoryStock = 0;
+      p.status = "LIQUIDATED";
+      p.totalGrossRevenue += liquidation.payout;
+      await p.save({ session });
+
+      updatedProduct = p;
+    });
 
     res.status(200).json({
       success: true,
       message: `Liquidated ${liquidation.unitsLiquidated.toLocaleString()} units for $${liquidation.payout.toLocaleString()} cash recovery.`,
-      product,
+      product: updatedProduct,
       payout: liquidation.payout,
     });
   } catch (error) {

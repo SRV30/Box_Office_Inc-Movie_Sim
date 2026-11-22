@@ -11,8 +11,13 @@ import { withTransaction } from "../utils/financeTransactionHelper.js";
 export const submitToFestival = async (req, res, next) => {
   try {
     const { movieId, festivalName } = req.body;
-    const movie = await Movie.findById(movieId);
 
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio profile not found" });
+    }
+
+    const movie = await Movie.findOne({ _id: movieId, studioId: studio._id });
     if (!movie) {
       return res.status(404).json({ success: false, message: "Movie not found" });
     }
@@ -25,33 +30,40 @@ export const submitToFestival = async (req, res, next) => {
     const distributionBids = generateDistributorOffers(deliberation.juryScore, movie.budget);
     const topOffer = distributionBids[0]?.advancePayment || 0;
 
-    // Atomically verify studio existence, deduct entry fee, and persist festival submission
+    // Atomically verify studio existence and ownership, deduct entry fee, and persist festival submission
     const submission = await withTransaction(async (session) => {
-      const studio = await Studio.findOne({ owner: req.user._id }).session(session);
-      if (!studio) {
+      const s = await Studio.findOne({ owner: req.user._id }).session(session);
+      if (!s) {
         const error = new Error("Studio profile not found. Please establish your studio first.");
         error.status = 404;
         throw error;
       }
 
-      if (studio.money < fee) {
+      const m = await Movie.findOne({ _id: movieId, studioId: s._id }).session(session);
+      if (!m) {
+        const error = new Error("Movie not found");
+        error.status = 404;
+        throw error;
+      }
+
+      if (s.money < fee) {
         const error = new Error(`Insufficient studio funds for festival entry fee (Requires ₹${fee.toLocaleString()})`);
         error.status = 400;
         throw error;
       }
 
-      studio.money -= fee;
+      s.money -= fee;
 
       if (deliberation.awardWon !== "NONE") {
-        studio.prestige = (studio.prestige || 0) + 15;
+        s.prestige = (s.prestige || 0) + 15;
       }
-      await studio.save({ session });
+      await s.save({ session });
 
       const [createdSubmission] = await FestivalSubmission.create(
         [
           {
             userId: req.user._id,
-            movieId,
+            movieId: m._id,
             festivalName,
             entryFee: fee,
             juryScore: deliberation.juryScore,

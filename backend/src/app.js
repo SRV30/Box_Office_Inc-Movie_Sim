@@ -69,6 +69,7 @@ import merchandiseEconomyRoutes from "./routes/merchandiseEconomyRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import simulationJobRoutes from "./routes/simulationJobRoutes.js";
 import observabilityRoutes from "./routes/observabilityRoutes.js";
+import saveExportRoutes from "./routes/saveExportRoutes.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -179,6 +180,7 @@ app.use("/api/seeder", apiRateLimiter, seederRoutes);
 app.use("/api/relationships", apiRateLimiter, relationshipRoutes);
 app.use("/api/cinema-markets", apiRateLimiter, cinemaMarketRoutes);
 app.use("/api/social", apiRateLimiter, socialMediaRoutes);
+app.use("/api/merchandise", apiRateLimiter, merchandiseRoutes);
 app.use("/api/merchandise-economy", apiRateLimiter, merchandiseEconomyRoutes);
 app.use("/api/talent-agencies", apiRateLimiter, agencyRoutes);
 app.use("/api/tutorial", apiRateLimiter, tutorialRoutes);
@@ -188,6 +190,7 @@ app.use("/api/awards", apiRateLimiter, awardsRoutes);
 app.use("/api/box-office", apiRateLimiter, boxOfficeRoutes);
 app.use("/api/simulation", apiRateLimiter, simulationJobRoutes);
 app.use("/api/observability", observabilityRoutes);
+app.use("/api/save", apiRateLimiter, saveExportRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

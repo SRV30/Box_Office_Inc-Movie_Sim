@@ -48,11 +48,21 @@ export const createMovie = async (req, res) => {
       return res.status(404).json({ success: false, message: "Game state or studio not found" });
     }
 
+    // Perform ALL validations prior to any mutations
     const { script } = validateScript(gameState, scriptId);
     const director = validateDirector(gameState, directorId);
     const leadActor = validateLeadActor(gameState, leadActorId);
     const supportingActors = validateSupportingActors(gameState, supportingActorIds);
     const crewTeam = validateCrewTeam(gameState, req.body.crewTeamId);
+
+    // Soundtrack selection validation
+    const soundtrackTierId = soundtrackTier || "PUBLIC_DOMAIN";
+    if (!SOUNDTRACK_TIERS[soundtrackTierId]) {
+      return res.status(400).json({ success: false, message: "Invalid soundtrack tier" });
+    }
+    const soundtrackConfig = SOUNDTRACK_TIERS[soundtrackTierId];
+    const soundtrackCost = soundtrackConfig.cost;
+    const { qualityBoost: stQualityBoost, hypeBoost: stHypeBoost } = getSoundtrackBoosts(soundtrackTierId, script.genres);
 
     // Calculate Marketing Budget and Hype Boost
     let marketingBudget = 0;
@@ -60,50 +70,28 @@ export const createMovie = async (req, res) => {
     const selectedCampaigns = [];
 
     if (marketingCampaignIds && Array.isArray(marketingCampaignIds)) {
-        marketingCampaignIds.forEach(cid => {
-            const campaign = MARKETING_CAMPAIGNS.find(c => c.id === cid);
-            if (campaign) {
-                marketingBudget += campaign.cost;
-                // Genre-specific effectiveness: a campaign that matches the
-                // script's genres yields more hype. Neutral (x1) for unlisted
-                // genre/campaign pairs, so existing behaviour is preserved.
-                marketingHypeBoost += getEffectiveHypeBoost(campaign, script.genres);
-                selectedCampaigns.push(cid);
-            }
-        });
+      marketingCampaignIds.forEach(cid => {
+        const campaign = MARKETING_CAMPAIGNS.find(c => c.id === cid);
+        if (campaign) {
+          marketingBudget += campaign.cost;
+          marketingHypeBoost += getEffectiveHypeBoost(campaign, script.genres);
+          selectedCampaigns.push(cid);
+        }
+      });
     }
 
     // Validate Co-Production parameters
     const share = Number(coProducerShare || 0);
     if (share < 0 || share > 50) {
-        return res.status(400).json({ success: false, message: "Co-producer share must be between 0% and 50%" });
+      return res.status(400).json({ success: false, message: "Co-producer share must be between 0% and 50%" });
     }
 
     const playerMarketingBudget = (marketingBudget || 0) * (1 - share / 100);
 
-    // Atomically deduct marketing budget (player's share) to prevent race conditions
-    // from concurrent requests overwriting each other's balance updates.
-    const updatedStudio = await Studio.findOneAndUpdate(
-      { _id: studio._id, money: { $gte: playerMarketingBudget } },
-      { $inc: { money: -playerMarketingBudget } },
-      { returnDocument: "after" }
-    );
-    if (!updatedStudio) {
+    if (studio.money < playerMarketingBudget) {
       return res.status(400).json({ success: false, message: "Insufficient funds for marketing" });
     }
-    studio.money = updatedStudio.money;
 
-    // Soundtrack selection
-    const soundtrackTierId = soundtrackTier || "PUBLIC_DOMAIN";
-    if (!SOUNDTRACK_TIERS[soundtrackTierId]) {
-        return res.status(400).json({ success: false, message: "Invalid soundtrack tier" });
-    }
-    const soundtrackConfig = SOUNDTRACK_TIERS[soundtrackTierId];
-    const soundtrackCost = soundtrackConfig.cost;
-    const { qualityBoost: stQualityBoost, hypeBoost: stHypeBoost } = getSoundtrackBoosts(soundtrackTierId, script.genres);
-
-    // Formula Implementation
-    // quality = Script Quality → 35% + Director Creativity → 25% + Lead Actor Skill → 20% + Crew Technical Quality → 20% + Soundtrack quality boost
     const quality = Math.round(
       (script.quality * 0.35) +
       (director.creativity * 0.25) +
@@ -112,7 +100,6 @@ export const createMovie = async (req, res) => {
       stQualityBoost
     );
 
-    // Hype = Lead Actor Popularity + Director Reputation + Marketing Budget influence + Soundtrack hype boost
     const hype = Math.min(100, Math.round(
       (leadActor.popularity * 0.4) +
       (director.reputation * 0.3) +
@@ -120,7 +107,7 @@ export const createMovie = async (req, res) => {
       stHypeBoost
     ));
 
-    const totalProductionWeeks = 20; // 4 + 10 + 6
+    const totalProductionWeeks = 20;
     const scriptCost = script.price || 0;
     const directorCost = director.salary * totalProductionWeeks;
     const leadActorCost = leadActor.salary * totalProductionWeeks;
@@ -128,104 +115,152 @@ export const createMovie = async (req, res) => {
 
     let supportingActorCost = 0;
     if (supportingActorIds && Array.isArray(supportingActorIds)) {
-        supportingActorIds.forEach(id => {
-            const act = gameState.ownedActors.find(a => a.id === id);
-            if (act) supportingActorCost += act.salary * totalProductionWeeks;
-        });
+      supportingActorIds.forEach(id => {
+        const act = gameState.ownedActors.find(a => a.id === id);
+        if (act) supportingActorCost += act.salary * totalProductionWeeks;
+      });
     }
 
     const totalBudget = scriptCost + directorCost + leadActorCost + supportingActorCost + crewCost + marketingBudget + soundtrackCost;
 
-    // Handle franchise / sequel logic
-    let franchiseId = req.body.franchiseId || null;
-    let sequelNumber = 1;
+    let createdMovie = null;
 
-    if (req.body.createFranchise && req.body.franchiseName) {
-      const newFranchise = await Franchise.create({
-        name: req.body.franchiseName,
-        studioId: studio._id,
-        movies: [],
-      });
-      franchiseId = newFranchise._id;
-    }
-
-    if (franchiseId) {
-      const franchise = await Franchise.findById(franchiseId);
-      if (franchise) {
-        sequelNumber = franchise.movies.length + 1;
+    // Execute all mutations atomically in a MongoDB transaction
+    await withTransaction(async (session) => {
+      const s = await Studio.findOne({ _id: studio._id, money: { $gte: playerMarketingBudget } }).session(session);
+      if (!s) {
+        throw new Error("Insufficient funds for marketing");
       }
-    }
+      s.money -= playerMarketingBudget;
+      await s.save({ session });
 
-    const movie = await Movie.create({
-      title,
-      studioId: studio._id,
-      scriptId,
-      directorId,
-      directorName: director.name,
-      leadActorId,
-      leadActorName: leadActor.name,
-      supportingActorIds: supportingActorIds || [],
-      crewTeamId: crewTeam.id,
-      crewTeamName: crewTeam.name,
-      budget: totalBudget,
-      budgetBreakdown: {
-        scriptCost,
-        directorCost,
-        leadActorCost,
-        supportingActorCost,
-        crewCost,
-        marketingCost: marketingBudget,
-        soundtrackCost,
-      },
-      marketingBudget,
-      marketingCampaigns: selectedCampaigns,
-      quality,
-      hype,
-      status: "PRE_PRODUCTION",
-      createdWeek: gameState.currentWeek,
-      productionProgress: 0,
-      remainingWeeks: totalProductionWeeks,
-      franchiseId,
-      sequelNumber,
-      soundtrackTier: soundtrackTierId,
-      coProducerStudioId: coProducerStudioId || null,
-      coProducerShare: share,
+      let franchiseId = req.body.franchiseId || null;
+      let sequelNumber = 1;
+
+      if (req.body.createFranchise && req.body.franchiseName) {
+        const [newFranchise] = await Franchise.create(
+          [
+            {
+              name: req.body.franchiseName,
+              studioId: s._id,
+              movies: [],
+            },
+          ],
+          { session }
+        );
+        franchiseId = newFranchise._id;
+      }
+
+      if (franchiseId) {
+        const franchise = await Franchise.findById(franchiseId).session(session);
+        if (franchise) {
+          sequelNumber = franchise.movies.length + 1;
+        }
+      }
+
+      const [movie] = await Movie.create(
+        [
+          {
+            title,
+            studioId: s._id,
+            scriptId,
+            directorId,
+            directorName: director.name,
+            leadActorId,
+            leadActorName: leadActor.name,
+            supportingActorIds: supportingActorIds || [],
+            crewTeamId: crewTeam.id,
+            crewTeamName: crewTeam.name,
+            budget: totalBudget,
+            budgetBreakdown: {
+              scriptCost,
+              directorCost,
+              leadActorCost,
+              supportingActorCost,
+              crewCost,
+              marketingCost: marketingBudget,
+              soundtrackCost,
+            },
+            marketingBudget,
+            marketingCampaigns: selectedCampaigns,
+            quality,
+            hype,
+            status: "PRE_PRODUCTION",
+            createdWeek: gameState.currentWeek,
+            productionProgress: 0,
+            remainingWeeks: totalProductionWeeks,
+            franchiseId,
+            sequelNumber,
+            soundtrackTier: soundtrackTierId,
+            coProducerStudioId: coProducerStudioId || null,
+            coProducerShare: share,
+          },
+        ],
+        { session }
+      );
+
+      if (franchiseId) {
+        await Franchise.findByIdAndUpdate(
+          franchiseId,
+          { $push: { movies: movie._id } },
+          { session }
+        );
+      }
+
+      // Update talent & script statuses on GameState
+      const gs = await GameState.findById(gameState._id).session(session);
+      const gsScript = gs.ownedScripts.find(scr => scr.id === scriptId);
+      if (gsScript) gsScript.status = "SOLD";
+
+      const gsDirector = gs.ownedDirectors.find(d => d.id === directorId);
+      if (gsDirector) {
+        gsDirector.status = "BUSY";
+        gsDirector.busyUntilWeek = gs.currentWeek + 20;
+      }
+
+      const gsLeadActor = gs.ownedActors.find(a => a.id === leadActorId);
+      if (gsLeadActor) {
+        gsLeadActor.status = "BUSY";
+        gsLeadActor.busyUntilWeek = gs.currentWeek + 20;
+      }
+
+      if (supportingActorIds && Array.isArray(supportingActorIds)) {
+        gs.ownedActors.forEach(actor => {
+          if (supportingActorIds.includes(actor.id)) {
+            actor.status = "BUSY";
+            actor.busyUntilWeek = gs.currentWeek + 20;
+          }
+        });
+      }
+
+      const gsCrew = gs.ownedCrewTeams?.find(c => c.id === req.body.crewTeamId);
+      if (gsCrew) {
+        gsCrew.status = "BUSY";
+        gsCrew.busyUntilWeek = gs.currentWeek + 20;
+      }
+
+      gs.activeMovies.push(movie._id);
+
+      await Notification.create(
+        [
+          {
+            gameStateId: gs._id,
+            message: `Production started for "${title}". Quality: ${quality}, Hype: ${hype}`,
+            createdAt: new Date(),
+          },
+        ],
+        { session }
+      );
+
+      await gs.save({ session });
+      createdMovie = movie;
     });
 
-    // Add movie to franchise
-    if (franchiseId) {
-      await Franchise.findByIdAndUpdate(franchiseId, {
-        $push: { movies: movie._id },
-      });
-    }
-
-    // Update statuses
-    script.status = "SOLD"; // Or a new "IN_PRODUCTION" status
-    director.status = "BUSY";
-    director.busyUntilWeek = gameState.currentWeek + 20; // Approx
-    leadActor.status = "BUSY";
-    leadActor.busyUntilWeek = gameState.currentWeek + 20;
-
-    supportingActors.forEach(actor => {
-        actor.status = "BUSY";
-        actor.busyUntilWeek = gameState.currentWeek + 20;
-    });
-
-    crewTeam.status = "BUSY";
-    crewTeam.busyUntilWeek = gameState.currentWeek + 20;
-
-    gameState.activeMovies.push(movie._id);
-
-    await Notification.create({
-        gameStateId: gameState._id,
-        message: `Production started for "${title}". Quality: ${quality}, Hype: ${hype}`,
-        createdAt: new Date()
-    });
-
-    await gameState.save();
-
-    res.status(201).json({ success: true, movie });
+    res.status(201).json({ success: true, movie: createdMovie });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -4,8 +4,8 @@ import Studio from "../models/Studio.js";
 /**
  * Evaluates studio financial standing and determines credit rating & yield rate
  */
-export function calculateCreditRatingAndYield(studioBalance, totalDebt, prestige) {
-  const netEquity = studioBalance - totalDebt;
+export function calculateCreditRatingAndYield(studioMoney, totalDebt, prestige) {
+  const netEquity = studioMoney - totalDebt;
   let rating = "BBB";
   let baseYield = 6.5;
 
@@ -40,13 +40,13 @@ export async function processWeeklyBondPayments() {
     const studio = await Studio.findById(bond.studioId);
     if (!studio) continue;
 
-    if (studio.balance >= bond.weeklyInterestPayment) {
-      studio.balance -= bond.weeklyInterestPayment;
+    if (studio.money >= bond.weeklyInterestPayment) {
+      studio.money -= bond.weeklyInterestPayment;
       bond.weeksRemaining -= 1;
 
       if (bond.weeksRemaining <= 0) {
-        if (studio.balance >= bond.principalAmount) {
-          studio.balance -= bond.principalAmount;
+        if (studio.money >= bond.principalAmount) {
+          studio.money -= bond.principalAmount;
           bond.status = "REPAID";
         } else {
           bond.status = "DEFAULTED";
