@@ -9,6 +9,7 @@ import Notification from "./Notification.js";
 import TalentHistory from "./TalentHistory.js";
 import PastAward from "./PastAward.js";
 import Progression from "./Progression.js";
+import FinancialLedgerEntry from "./FinancialLedgerEntry.js";
 
 console.log("Models Loaded");
 
@@ -24,4 +25,5 @@ export {
   TalentHistory,
   PastAward,
   Progression,
+  FinancialLedgerEntry,
 };
