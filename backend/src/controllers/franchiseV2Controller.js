@@ -31,12 +31,17 @@ export async function getStudioUniverses(req, res, next) {
 }
 
 /**
- * Gets universe detail by ID with fatigue, canon, and cross-media telemetry
+ * Gets universe detail by ID with fatigue, canon, and cross-media telemetry (studio-scoped)
  */
 export async function getUniverseById(req, res, next) {
   try {
     const { id } = req.params;
-    const universe = await FranchiseUniverseV2.findById(id);
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const universe = await FranchiseUniverseV2.findOne({ _id: id, studioId: studio._id });
     if (!universe) {
       return res.status(404).json({ success: false, message: "Universe not found" });
     }
@@ -102,6 +107,7 @@ export async function createUniverse(req, res, next) {
 
 /**
  * Registers an existing Movie or TV show into the Universe Canon Timeline
+ * Strictly verifies ownership of both universe and the target content
  */
 export async function addCanonEntry(req, res, next) {
   try {
@@ -114,7 +120,12 @@ export async function addCanonEntry(req, res, next) {
       leadWriterRetained = true,
     } = req.body;
 
-    const universe = await FranchiseUniverseV2.findById(id);
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const universe = await FranchiseUniverseV2.findOne({ _id: id, studioId: studio._id });
     if (!universe) {
       return res.status(404).json({ success: false, message: "Universe not found" });
     }
@@ -124,19 +135,21 @@ export async function addCanonEntry(req, res, next) {
     let worldwideGross = 0;
 
     if (entryType === "MOVIE") {
-      const movie = await Movie.findById(entryId);
-      if (movie) {
-        title = movie.title;
-        qualityScore = movie.criticalScore || movie.quality || 65;
-        worldwideGross = movie.worldwideGross || 0;
+      const movie = await Movie.findOne({ _id: entryId, studioId: studio._id });
+      if (!movie) {
+        return res.status(404).json({ success: false, message: "Movie not found or unauthorized" });
       }
+      title = movie.title;
+      qualityScore = movie.criticalScore || movie.quality || 65;
+      worldwideGross = movie.worldwideGross || 0;
     } else {
-      const tvShow = await TVShow.findById(entryId);
-      if (tvShow) {
-        title = tvShow.title;
-        qualityScore = tvShow.quality || 65;
-        worldwideGross = tvShow.totalAdvertisingRevenue || 0;
+      const tvShow = await TVShow.findOne({ _id: entryId, studioId: studio._id });
+      if (!tvShow) {
+        return res.status(404).json({ success: false, message: "TV show not found or unauthorized" });
       }
+      title = tvShow.title;
+      qualityScore = tvShow.quality || 65;
+      worldwideGross = tvShow.totalAdvertisingRevenue || 0;
     }
 
     const nextTimelinePos = (universe.canonTimeline?.length || 0) + 1;
@@ -189,12 +202,17 @@ export async function addCanonEntry(req, res, next) {
 }
 
 /**
- * Toggles hiatus mode to cool off audience fatigue
+ * Toggles hiatus mode to cool off audience fatigue (studio-scoped)
  */
 export async function toggleHiatus(req, res, next) {
   try {
     const { id } = req.params;
-    const universe = await FranchiseUniverseV2.findById(id);
+    const studio = await Studio.findOne({ owner: req.user._id });
+    if (!studio) {
+      return res.status(404).json({ success: false, message: "Studio not found" });
+    }
+
+    const universe = await FranchiseUniverseV2.findOne({ _id: id, studioId: studio._id });
     if (!universe) {
       return res.status(404).json({ success: false, message: "Universe not found" });
     }
